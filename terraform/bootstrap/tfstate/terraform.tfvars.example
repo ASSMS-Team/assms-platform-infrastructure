@@ -1,0 +1,4 @@
+location             = "southeastasia"
+resource_group_name  = "rg-assms-tfstate"
+storage_account_name = "stassmstfstateXXXX"
+container_name       = "tfstate"
