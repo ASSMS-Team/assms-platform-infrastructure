@@ -18,3 +18,11 @@
 
 ## Documentation
 
+## Continuous Integration
+
+Terraform changes are validated automatically through GitHub Actions.
+
+Checks:
+- terraform fmt
+- terraform init -backend=false
+- terraform validate
