@@ -91,3 +91,127 @@ variable "tags" {
     ManagedBy   = "Terraform"
   }
 }
+
+variable "mysql_server_name" {
+  description = "Globally unique name of the staging MySQL Flexible Server."
+  type        = string
+}
+
+variable "mysql_admin_username" {
+  description = "Administrator username for the staging MySQL server."
+  type        = string
+  default     = "assmsadmin"
+}
+
+variable "mysql_admin_password" {
+  description = "Administrator password for the staging MySQL server."
+  type        = string
+  sensitive   = true
+}
+
+variable "mysql_version" {
+  description = "MySQL engine version."
+  type        = string
+  default     = "8.0.21"
+}
+
+variable "mysql_sku_name" {
+  description = "Staging MySQL SKU."
+  type        = string
+  default     = "B_Standard_B1ms"
+}
+
+variable "mysql_storage_size_gb" {
+  description = "Allocated MySQL storage in GiB."
+  type        = number
+  default     = 20
+}
+
+variable "mysql_backup_retention_days" {
+  description = "MySQL backup retention in days."
+  type        = number
+  default     = 7
+}
+
+variable "mysql_private_dns_zone_name" {
+  description = "Private DNS zone used by staging MySQL."
+  type        = string
+  default     = "assms-staging.mysql.database.azure.com"
+}
+
+variable "mysql_private_dns_link_name" {
+  description = "Name of the MySQL private DNS VNet link."
+  type        = string
+  default     = "pdnslink-assms-mysql-staging"
+}
+
+variable "mysql_database_names" {
+  description = "Logical ASSMS databases on the shared server."
+  type        = list(string)
+  default     = ["customerdb", "jobdb", "dispatchdb", "reportingdb"]
+}
+
+variable "kafka_vm_name" {
+  description = "Name of the staging Kafka VM."
+  type        = string
+  default     = "vm-assms-kafka-staging"
+}
+
+variable "kafka_vm_size" {
+  description = "Azure VM size for the staging Kafka host."
+  type        = string
+  default     = "Standard_B2s"
+}
+
+variable "kafka_admin_username" {
+  description = "Administrator username for the Kafka VM."
+  type        = string
+  default     = "assmsadmin"
+}
+
+variable "kafka_ssh_public_key" {
+  description = "SSH public key used to administer the Kafka VM."
+  type        = string
+}
+
+variable "kafka_nsg_name" {
+  description = "Name of the Kafka VM NSG."
+  type        = string
+  default     = "nsg-assms-kafka-staging"
+}
+
+variable "kafka_nic_name" {
+  description = "Name of the Kafka VM NIC."
+  type        = string
+  default     = "nic-assms-kafka-staging"
+}
+
+variable "kafka_public_ip_name" {
+  description = "Name of the optional Kafka public IP."
+  type        = string
+  default     = "pip-assms-kafka-staging"
+}
+
+variable "kafka_enable_public_ip" {
+  description = "Whether to create a public IP for the Kafka VM."
+  type        = bool
+  default     = false
+}
+variable "kafka_enable_ssh" {
+  description = "Whether to allow SSH from explicitly approved CIDRs."
+  type        = bool
+  default     = false
+  validation {
+    condition     = !var.kafka_enable_ssh || length(var.kafka_ssh_allowed_source_cidrs) > 0
+    error_message = "At least one approved SSH source CIDR is required when Kafka SSH is enabled."
+  }
+}
+variable "kafka_ssh_allowed_source_cidrs" {
+  description = "CIDRs permitted to SSH to Kafka when SSH is enabled."
+  type        = list(string)
+  default     = []
+  validation {
+    condition     = alltrue([for cidr in var.kafka_ssh_allowed_source_cidrs : cidr != "0.0.0.0/0"])
+    error_message = "Unrestricted SSH from 0.0.0.0/0 is not permitted."
+  }
+}

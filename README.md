@@ -50,4 +50,10 @@ The staging network creates a shared resource group and VNet with three private 
 - Platform subnet: reserved for future Kafka, monitoring, and other shared platform compute.
 - Database subnet: prepared with MySQL Flexible Server delegation for a later database step.
 
-This repository owns the shared network only. It does not create service VMs, public IPs, network security rules, databases, Kafka, monitoring, or application deployment.
+This repository owns the shared network and shared platform infrastructure. The four service VMs and frontend hosting remain owned by their individual repositories.
+
+## Shared Data and Messaging Infrastructure
+
+The platform Terraform prepares a private MySQL Flexible Server in the delegated database subnet with `customerdb`, `jobdb`, `dispatchdb`, and `reportingdb`. Private DNS links MySQL to the ASSMS VNet; public MySQL access is disabled.
+
+The Kafka VM is attached to the platform subnet. Kafka port 9092 and the future Prometheus/Grafana ports are reachable only from configured private ASSMS subnet ranges. Kafka software, Prometheus, and Grafana are intentionally not installed by Terraform. A public IP and SSH access are disabled by default and remain explicit configuration choices.

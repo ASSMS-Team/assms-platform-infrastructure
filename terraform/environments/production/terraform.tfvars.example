@@ -1,2 +1,32 @@
-# Placeholder
+location            = "southeastasia"
+environment         = "production"
+resource_group_name = "rg-assms-production"
 
+vnet_name          = "vnet-assms-production"
+vnet_address_space = ["10.30.0.0/16"]
+
+services_subnet_name             = "snet-assms-services-production"
+services_subnet_address_prefixes = ["10.30.1.0/24"]
+platform_subnet_name             = "snet-assms-platform-production"
+platform_subnet_address_prefixes = ["10.30.2.0/24"]
+database_subnet_name             = "snet-assms-database-production"
+database_subnet_address_prefixes = ["10.30.3.0/24"]
+
+mysql_server_name    = "mysql-assms-production-XXXX"
+mysql_admin_username = "assmsadmin"
+mysql_admin_password = "REPLACE_WITH_A_STRONG_PASSWORD"
+
+kafka_vm_name        = "vm-assms-kafka-production"
+kafka_vm_size        = "Standard_B2s"
+kafka_admin_username = "assmsadmin"
+kafka_ssh_public_key = "ssh-ed25519 REPLACE_WITH_YOUR_PUBLIC_KEY"
+
+kafka_enable_public_ip         = false
+kafka_enable_ssh               = false
+kafka_ssh_allowed_source_cidrs = []
+
+tags = {
+  Project     = "ASSMS"
+  Environment = "production"
+  ManagedBy   = "Terraform"
+}

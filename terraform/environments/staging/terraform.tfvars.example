@@ -19,3 +19,16 @@ tags = {
   Environment = "staging"
   ManagedBy   = "Terraform"
 }
+
+mysql_server_name    = "mysql-assms-staging-XXXX"
+mysql_admin_username = "assmsadmin"
+mysql_admin_password = "REPLACE_WITH_A_STRONG_PASSWORD"
+
+kafka_vm_name        = "vm-assms-kafka-staging"
+kafka_vm_size        = "Standard_B2s"
+kafka_admin_username = "assmsadmin"
+kafka_ssh_public_key = "ssh-ed25519 REPLACE_WITH_YOUR_PUBLIC_KEY"
+
+kafka_enable_public_ip         = false
+kafka_enable_ssh               = false
+kafka_ssh_allowed_source_cidrs = []
