@@ -1,2 +1,21 @@
-# Placeholder
+location            = "southeastasia"
+environment         = "staging"
+resource_group_name = "rg-assms-staging"
 
+vnet_name          = "vnet-assms-staging"
+vnet_address_space = ["10.20.0.0/16"]
+
+services_subnet_name             = "snet-assms-services-staging"
+services_subnet_address_prefixes = ["10.20.1.0/24"]
+
+platform_subnet_name             = "snet-assms-platform-staging"
+platform_subnet_address_prefixes = ["10.20.2.0/24"]
+
+database_subnet_name             = "snet-assms-database-staging"
+database_subnet_address_prefixes = ["10.20.3.0/24"]
+
+tags = {
+  Project     = "ASSMS"
+  Environment = "staging"
+  ManagedBy   = "Terraform"
+}

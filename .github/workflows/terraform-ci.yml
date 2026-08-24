@@ -39,10 +39,11 @@ jobs:
         run: |
           set -euo pipefail
 
+          # Reusable modules are validated through their consuming root module.
           mapfile -t terraform_roots < <(
             find terraform -type f -name '*.tf' -print0 |
               while IFS= read -r -d '' terraform_file; do
-                if grep -qvE '^[[:space:]]*(#.*)?$' "$terraform_file"; then
+                if grep -qE '^[[:space:]]*terraform[[:space:]]*\{' "$terraform_file"; then
                   dirname "$terraform_file"
                 fi
               done | sort -u

@@ -41,3 +41,13 @@ The bootstrap configuration initially uses local state because it creates the Az
 8. `terraform validate`
 9. `terraform plan`
 10. `terraform apply`
+
+## Shared Staging Networking
+
+The staging network creates a shared resource group and VNet with three private subnets:
+
+- Services subnet: reserved for the four service repositories to provision their own VMs later.
+- Platform subnet: reserved for future Kafka, monitoring, and other shared platform compute.
+- Database subnet: prepared with MySQL Flexible Server delegation for a later database step.
+
+This repository owns the shared network only. It does not create service VMs, public IPs, network security rules, databases, Kafka, monitoring, or application deployment.
