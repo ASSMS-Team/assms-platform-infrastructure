@@ -20,12 +20,14 @@
 
 ## Continuous Integration
 
-Terraform changes are validated automatically through GitHub Actions.
+Terraform changes are validated automatically through GitHub Actions on pull requests targeting `dev` or `main` and pushes to `dev` or `main`.
 
 Checks:
 - terraform fmt
 - terraform init -backend=false
 - terraform validate
+
+Formatting or validation failures fail CI. This workflow does not deploy infrastructure or use Azure credentials.
 
 ## Terraform Remote State Bootstrap
 
