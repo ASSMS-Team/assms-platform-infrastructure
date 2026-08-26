@@ -127,6 +127,12 @@ variable "mysql_storage_size_gb" {
   default     = 20
 }
 
+variable "mysql_storage_auto_grow_enabled" {
+  description = "Whether staging MySQL storage can grow automatically when capacity is low."
+  type        = bool
+  default     = false
+}
+
 variable "mysql_backup_retention_days" {
   description = "MySQL backup retention in days."
   type        = number
@@ -160,7 +166,13 @@ variable "kafka_vm_name" {
 variable "kafka_vm_size" {
   description = "Azure VM size for the staging Kafka host."
   type        = string
-  default     = "Standard_B2s"
+  default     = "Standard_B2pls_v2"
+}
+
+variable "kafka_source_image_sku" {
+  description = "Canonical Ubuntu Arm64 image SKU for the staging Kafka VM."
+  type        = string
+  default     = "22_04-lts-arm64"
 }
 
 variable "kafka_admin_username" {

@@ -59,6 +59,12 @@ variable "storage_size_gb" {
   type        = number
 }
 
+variable "storage_auto_grow_enabled" {
+  description = "Whether MySQL storage can grow automatically when capacity is low."
+  type        = bool
+  default     = true
+}
+
 variable "backup_retention_days" {
   description = "Number of days MySQL backups are retained."
   type        = number

@@ -87,13 +87,3 @@ output "kafka_bootstrap_server" {
   description = "Private Kafka bootstrap endpoint used by backend services."
   value       = "${module.kafka_nic.private_ip_address}:9092"
 }
-
-output "prometheus_private_endpoint" {
-  description = "Private endpoint reserved for a future Prometheus container on the Kafka host."
-  value       = "${module.kafka_nic.private_ip_address}:9090"
-}
-
-output "grafana_private_endpoint" {
-  description = "Private endpoint reserved for a future Grafana container on the Kafka host."
-  value       = "${module.kafka_nic.private_ip_address}:3000"
-}

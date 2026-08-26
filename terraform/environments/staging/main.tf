@@ -47,21 +47,22 @@ module "database_subnet" {
 module "mysql" {
   source = "../../modules/mysql"
 
-  server_name            = var.mysql_server_name
-  resource_group_name    = module.resource_group.name
-  location               = module.resource_group.location
-  delegated_subnet_id    = module.database_subnet.id
-  virtual_network_id     = module.vnet.id
-  private_dns_zone_name  = var.mysql_private_dns_zone_name
-  private_dns_link_name  = var.mysql_private_dns_link_name
-  administrator_username = var.mysql_admin_username
-  administrator_password = var.mysql_admin_password
-  mysql_version          = var.mysql_version
-  sku_name               = var.mysql_sku_name
-  storage_size_gb        = var.mysql_storage_size_gb
-  backup_retention_days  = var.mysql_backup_retention_days
-  database_names         = var.mysql_database_names
-  tags                   = var.tags
+  server_name               = var.mysql_server_name
+  resource_group_name       = module.resource_group.name
+  location                  = module.resource_group.location
+  delegated_subnet_id       = module.database_subnet.id
+  virtual_network_id        = module.vnet.id
+  private_dns_zone_name     = var.mysql_private_dns_zone_name
+  private_dns_link_name     = var.mysql_private_dns_link_name
+  administrator_username    = var.mysql_admin_username
+  administrator_password    = var.mysql_admin_password
+  mysql_version             = var.mysql_version
+  sku_name                  = var.mysql_sku_name
+  storage_size_gb           = var.mysql_storage_size_gb
+  storage_auto_grow_enabled = var.mysql_storage_auto_grow_enabled
+  backup_retention_days     = var.mysql_backup_retention_days
+  database_names            = var.mysql_database_names
+  tags                      = var.tags
 }
 
 locals {
@@ -75,15 +76,6 @@ locals {
         destination_port_ranges = ["9092"]
         source_address_prefixes = var.services_subnet_address_prefixes
         description             = "Allow Kafka clients from the private services subnet."
-      }
-      AllowMonitoringFromPrivateSubnets = {
-        priority                = 1002
-        direction               = "Inbound"
-        access                  = "Allow"
-        protocol                = "Tcp"
-        destination_port_ranges = ["3000", "9090"]
-        source_address_prefixes = distinct(concat(var.services_subnet_address_prefixes, var.platform_subnet_address_prefixes))
-        description             = "Allow private access to future Grafana and Prometheus containers."
       }
     },
     var.kafka_enable_ssh ? {
@@ -142,5 +134,6 @@ module "kafka_vm" {
   admin_username       = var.kafka_admin_username
   ssh_public_key       = var.kafka_ssh_public_key
   network_interface_id = module.kafka_nic.id
+  source_image_sku     = var.kafka_source_image_sku
   tags                 = var.tags
 }
