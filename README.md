@@ -57,3 +57,7 @@ This repository owns the shared network and shared platform infrastructure. The 
 The platform Terraform prepares a private MySQL Flexible Server in the delegated database subnet with `customerdb`, `jobdb`, `dispatchdb`, and `reportingdb`. Private DNS links MySQL to the ASSMS VNet; public MySQL access is disabled.
 
 The Kafka VM is attached to the platform subnet. Kafka port 9092 and the future Prometheus/Grafana ports are reachable only from configured private ASSMS subnet ranges. Kafka software, Prometheus, and Grafana are intentionally not installed by Terraform. A public IP and SSH access are disabled by default and remain explicit configuration choices.
+
+## Local Kafka Development
+
+The local development foundation runs a single Apache Kafka broker in KRaft mode with Docker Compose. See [Local Kafka Development](docs/kafka/local-development.md) for startup, topic initialization, smoke testing, and consumer-group guidance.
