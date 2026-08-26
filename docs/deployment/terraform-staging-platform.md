@@ -1,4 +1,5 @@
 # ASSMS Terraform Staging Platform
+# ASSMS Terraform Staging Platform
 
 ## Document purpose
 

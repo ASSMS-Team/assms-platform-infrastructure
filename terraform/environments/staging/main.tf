@@ -44,6 +44,52 @@ module "database_subnet" {
   delegation           = var.database_subnet_delegation
 }
 
+module "secondary_vnet" {
+  source = "../../modules/vnet"
+
+  name                = var.secondary_vnet_name
+  resource_group_name = module.resource_group.name
+  location            = var.secondary_location
+  address_space       = var.secondary_vnet_address_space
+  tags                = var.tags
+}
+
+module "secondary_services_subnet" {
+  source = "../../modules/subnet"
+
+  name                 = var.secondary_services_subnet_name
+  resource_group_name  = module.resource_group.name
+  virtual_network_name = module.secondary_vnet.name
+  address_prefixes     = var.secondary_services_subnet_address_prefixes
+}
+
+resource "azurerm_virtual_network_peering" "primary_to_secondary" {
+  name                         = var.primary_to_secondary_peering_name
+  resource_group_name          = module.resource_group.name
+  virtual_network_name         = module.vnet.name
+  remote_virtual_network_id    = module.secondary_vnet.id
+  allow_virtual_network_access = true
+}
+
+resource "azurerm_virtual_network_peering" "secondary_to_primary" {
+  name                         = var.secondary_to_primary_peering_name
+  resource_group_name          = module.resource_group.name
+  virtual_network_name         = module.secondary_vnet.name
+  remote_virtual_network_id    = module.vnet.id
+  allow_virtual_network_access = true
+}
+
+resource "azurerm_private_dns_zone_virtual_network_link" "mysql_secondary" {
+  name                  = var.mysql_secondary_private_dns_link_name
+  resource_group_name   = module.resource_group.name
+  private_dns_zone_name = var.mysql_private_dns_zone_name
+  virtual_network_id    = module.secondary_vnet.id
+  registration_enabled  = false
+  tags                  = var.tags
+
+  depends_on = [module.mysql]
+}
+
 module "mysql" {
   source = "../../modules/mysql"
 
@@ -74,7 +120,7 @@ locals {
         access                  = "Allow"
         protocol                = "Tcp"
         destination_port_ranges = ["9092"]
-        source_address_prefixes = var.services_subnet_address_prefixes
+        source_address_prefixes = concat(var.services_subnet_address_prefixes, var.secondary_services_subnet_address_prefixes)
         description             = "Allow Kafka clients from the private services subnet."
       }
     },

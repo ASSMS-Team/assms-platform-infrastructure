@@ -18,6 +18,11 @@ output "vnet_id" {
   value       = module.vnet.id
 }
 
+output "secondary_region" { value = var.secondary_location }
+output "secondary_vnet_id" { value = module.secondary_vnet.id }
+output "secondary_services_subnet_id" { value = module.secondary_services_subnet.id }
+output "secondary_services_subnet_cidr" { value = module.secondary_services_subnet.address_prefixes }
+
 output "services_subnet_id" {
   description = "Resource ID of the services subnet for future service VM Terraform."
   value       = module.services_subnet.id
