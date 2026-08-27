@@ -28,7 +28,7 @@ resource "azurerm_mysql_flexible_server" "this" {
   tags                   = var.tags
 
   storage {
-    auto_grow_enabled = true
+    auto_grow_enabled = var.storage_auto_grow_enabled
     size_gb           = var.storage_size_gb
   }
 

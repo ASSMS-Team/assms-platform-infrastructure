@@ -44,24 +44,71 @@ module "database_subnet" {
   delegation           = var.database_subnet_delegation
 }
 
+module "secondary_vnet" {
+  source = "../../modules/vnet"
+
+  name                = var.secondary_vnet_name
+  resource_group_name = module.resource_group.name
+  location            = var.secondary_location
+  address_space       = var.secondary_vnet_address_space
+  tags                = var.tags
+}
+
+module "secondary_services_subnet" {
+  source = "../../modules/subnet"
+
+  name                 = var.secondary_services_subnet_name
+  resource_group_name  = module.resource_group.name
+  virtual_network_name = module.secondary_vnet.name
+  address_prefixes     = var.secondary_services_subnet_address_prefixes
+}
+
+resource "azurerm_virtual_network_peering" "primary_to_secondary" {
+  name                         = var.primary_to_secondary_peering_name
+  resource_group_name          = module.resource_group.name
+  virtual_network_name         = module.vnet.name
+  remote_virtual_network_id    = module.secondary_vnet.id
+  allow_virtual_network_access = true
+}
+
+resource "azurerm_virtual_network_peering" "secondary_to_primary" {
+  name                         = var.secondary_to_primary_peering_name
+  resource_group_name          = module.resource_group.name
+  virtual_network_name         = module.secondary_vnet.name
+  remote_virtual_network_id    = module.vnet.id
+  allow_virtual_network_access = true
+}
+
+resource "azurerm_private_dns_zone_virtual_network_link" "mysql_secondary" {
+  name                  = var.mysql_secondary_private_dns_link_name
+  resource_group_name   = module.resource_group.name
+  private_dns_zone_name = var.mysql_private_dns_zone_name
+  virtual_network_id    = module.secondary_vnet.id
+  registration_enabled  = false
+  tags                  = var.tags
+
+  depends_on = [module.mysql]
+}
+
 module "mysql" {
   source = "../../modules/mysql"
 
-  server_name            = var.mysql_server_name
-  resource_group_name    = module.resource_group.name
-  location               = module.resource_group.location
-  delegated_subnet_id    = module.database_subnet.id
-  virtual_network_id     = module.vnet.id
-  private_dns_zone_name  = var.mysql_private_dns_zone_name
-  private_dns_link_name  = var.mysql_private_dns_link_name
-  administrator_username = var.mysql_admin_username
-  administrator_password = var.mysql_admin_password
-  mysql_version          = var.mysql_version
-  sku_name               = var.mysql_sku_name
-  storage_size_gb        = var.mysql_storage_size_gb
-  backup_retention_days  = var.mysql_backup_retention_days
-  database_names         = var.mysql_database_names
-  tags                   = var.tags
+  server_name               = var.mysql_server_name
+  resource_group_name       = module.resource_group.name
+  location                  = module.resource_group.location
+  delegated_subnet_id       = module.database_subnet.id
+  virtual_network_id        = module.vnet.id
+  private_dns_zone_name     = var.mysql_private_dns_zone_name
+  private_dns_link_name     = var.mysql_private_dns_link_name
+  administrator_username    = var.mysql_admin_username
+  administrator_password    = var.mysql_admin_password
+  mysql_version             = var.mysql_version
+  sku_name                  = var.mysql_sku_name
+  storage_size_gb           = var.mysql_storage_size_gb
+  storage_auto_grow_enabled = var.mysql_storage_auto_grow_enabled
+  backup_retention_days     = var.mysql_backup_retention_days
+  database_names            = var.mysql_database_names
+  tags                      = var.tags
 }
 
 locals {
@@ -73,17 +120,8 @@ locals {
         access                  = "Allow"
         protocol                = "Tcp"
         destination_port_ranges = ["9092"]
-        source_address_prefixes = var.services_subnet_address_prefixes
+        source_address_prefixes = concat(var.services_subnet_address_prefixes, var.secondary_services_subnet_address_prefixes)
         description             = "Allow Kafka clients from the private services subnet."
-      }
-      AllowMonitoringFromPrivateSubnets = {
-        priority                = 1002
-        direction               = "Inbound"
-        access                  = "Allow"
-        protocol                = "Tcp"
-        destination_port_ranges = ["3000", "9090"]
-        source_address_prefixes = distinct(concat(var.services_subnet_address_prefixes, var.platform_subnet_address_prefixes))
-        description             = "Allow private access to future Grafana and Prometheus containers."
       }
     },
     var.kafka_enable_ssh ? {
@@ -142,5 +180,6 @@ module "kafka_vm" {
   admin_username       = var.kafka_admin_username
   ssh_public_key       = var.kafka_ssh_public_key
   network_interface_id = module.kafka_nic.id
+  source_image_sku     = var.kafka_source_image_sku
   tags                 = var.tags
 }

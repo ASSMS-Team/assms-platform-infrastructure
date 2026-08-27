@@ -33,6 +33,12 @@ variable "network_interface_id" {
   type        = string
 }
 
+variable "source_image_sku" {
+  description = "Canonical Ubuntu image SKU used by the Kafka VM."
+  type        = string
+  default     = "22_04-lts-gen2"
+}
+
 variable "tags" {
   description = "Tags applied to the Kafka VM."
   type        = map(string)

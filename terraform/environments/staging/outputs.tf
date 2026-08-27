@@ -18,6 +18,11 @@ output "vnet_id" {
   value       = module.vnet.id
 }
 
+output "secondary_region" { value = var.secondary_location }
+output "secondary_vnet_id" { value = module.secondary_vnet.id }
+output "secondary_services_subnet_id" { value = module.secondary_services_subnet.id }
+output "secondary_services_subnet_cidr" { value = module.secondary_services_subnet.address_prefixes }
+
 output "services_subnet_id" {
   description = "Resource ID of the services subnet for future service VM Terraform."
   value       = module.services_subnet.id
@@ -86,14 +91,4 @@ output "kafka_public_ip" {
 output "kafka_bootstrap_server" {
   description = "Private Kafka bootstrap endpoint used by backend services."
   value       = "${module.kafka_nic.private_ip_address}:9092"
-}
-
-output "prometheus_private_endpoint" {
-  description = "Private endpoint reserved for a future Prometheus container on the Kafka host."
-  value       = "${module.kafka_nic.private_ip_address}:9090"
-}
-
-output "grafana_private_endpoint" {
-  description = "Private endpoint reserved for a future Grafana container on the Kafka host."
-  value       = "${module.kafka_nic.private_ip_address}:3000"
 }

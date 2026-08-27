@@ -18,6 +18,8 @@
 
 ## Documentation
 
+- [Terraform Staging Platform Deployment and Runbook](docs/deployment/terraform-staging-platform.md)
+
 ## Continuous Integration
 
 Terraform changes are validated automatically through GitHub Actions on pull requests targeting `dev` or `main` and pushes to `dev` or `main`.
@@ -58,7 +60,7 @@ This repository owns the shared network and shared platform infrastructure. The 
 
 The platform Terraform prepares a private MySQL Flexible Server in the delegated database subnet with `customerdb`, `jobdb`, `dispatchdb`, and `reportingdb`. Private DNS links MySQL to the ASSMS VNet; public MySQL access is disabled.
 
-The Kafka VM is attached to the platform subnet. Kafka port 9092 and the future Prometheus/Grafana ports are reachable only from configured private ASSMS subnet ranges. Kafka software, Prometheus, and Grafana are intentionally not installed by Terraform. A public IP and SSH access are disabled by default and remain explicit configuration choices.
+The Kafka VM is attached to the platform subnet. Kafka port 9092 is reachable only from the private services subnet. Prometheus/Grafana access on ports 9090 and 3000 is postponed to ASSMS-18 and is not currently allowed by the Kafka NSG. Kafka software, Prometheus, and Grafana are intentionally not installed by Terraform. A public IP and SSH access are disabled by default and remain explicit configuration choices.
 
 ## Local Kafka Development
 
