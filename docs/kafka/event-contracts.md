@@ -54,23 +54,28 @@ Published by Job Service to `job-created` when a new job has been persisted. Env
 
 ### Payload Fields
 
+These are the fields as Job Service actually publishes them, matching the `jobs` table it writes.
+
 | Field | Type | Nullable | Description |
 | --- | --- | --- | --- |
 | `jobId` | string (UUID) | no | Server-generated id of the job. Also the message key. |
+| `jobReference` | string | no | Human-readable handle, `JOB-` followed by six characters, unique across all jobs. This is what an Agent quotes to a customer, so a consumer displaying a job shows this rather than `jobId`. |
 | `customerId` | string (UUID) | no | Customer the job belongs to, as held by the Customer & Asset Service. |
 | `assetId` | string (UUID) | no | Asset the job is raised against, as held by the Customer & Asset Service. |
-| `jobType` | string | no | Kind of work: `REPAIR`, `INSTALLATION`, `MAINTENANCE` or `INSPECTION`. |
-| `priority` | string | no | `LOW`, `NORMAL`, `HIGH` or `URGENT`. |
-| `status` | string | no | Lifecycle status at creation. Always `PENDING` in this event. |
-| `description` | string | no | Free-text description of the reported problem or requested work. |
-| `location` | string | no | Where the work is to be carried out. |
-| `scheduledDate` | string (ISO 8601 date, `YYYY-MM-DD`) | yes | Day the job is scheduled for, or `null` when it has not been scheduled. It is a date with no time of day. |
-| `createdBy` | string (UUID) | no | Id of the Agent who raised the job. |
+| `serviceCategory` | string | no | Kind of work: `INSTALLATION`, `REPAIR`, `MAINTENANCE`, `INSPECTION` or `WARRANTY_CLAIM`. |
+| `problemDescription` | string | no | What the customer reported. Up to 1000 characters. |
+| `priority` | string | no | `LOW`, `MEDIUM`, `HIGH` or `URGENT`. |
+| `region` | string | no | Sri Lankan province the work is in: `WESTERN`, `CENTRAL`, `SOUTHERN`, `NORTHERN`, `EASTERN`, `NORTH_WESTERN`, `NORTH_CENTRAL`, `UVA` or `SABARAGAMUWA`. This is what Dispatch matches against technician coverage. |
+| `status` | string | no | Lifecycle status at creation. Always `CREATED` in this event. |
 | `createdAt` | string (ISO 8601, UTC) | no | Database timestamp for when the job row was created. |
 
 Enumerated values are `UPPER_SNAKE_CASE`, ids are GUID strings, and timestamps are UTC in ISO 8601 — the same conventions the ASSMS REST APIs already use.
 
-`status` is present even though it is always `PENDING` here, so that a consumer can read the status field the same way across `job-created` and the later `job-status-changed`.
+`status` is present even though it is always `CREATED` here, so that a consumer can read the status field the same way across `job-created` and the later `job-status-changed`.
+
+`region` is a province, not a street address. It is the field Dispatch filters on, and the `jobs` table indexes it for exactly that query. The address of the work is held against the asset in the Customer & Asset Service and is not duplicated onto the event.
+
+Two columns on the `jobs` table are deliberately not published. `scheduledDate` is null on every row until a later story schedules work, and `createdBy` holds a placeholder until authentication exists; publishing either would put a value on the wire that means nothing. Both are additive when they carry real values, which under the versioning rules above does not change `eventVersion`.
 
 ### Example Message
 
@@ -85,19 +90,24 @@ Key: `9f1c7a24-8f4e-4c3a-9a52-2b6d0f5e1a77`
   "producer": "job-service",
   "payload": {
     "jobId": "9f1c7a24-8f4e-4c3a-9a52-2b6d0f5e1a77",
+    "jobReference": "JOB-7K2M9X",
     "customerId": "c41b9e2d-77a3-4d5f-8e10-6b2c9a0f4d13",
     "assetId": "a70e5c18-2d94-4b6a-9f37-1e8d5c3b7a62",
-    "jobType": "REPAIR",
+    "serviceCategory": "REPAIR",
+    "problemDescription": "Air conditioner in the server room is not cooling and trips the breaker after ten minutes.",
     "priority": "HIGH",
-    "status": "PENDING",
-    "description": "Air conditioner in the server room is not cooling and trips the breaker after ten minutes.",
-    "location": "Ground floor server room, 42 Galle Road, Colombo 03",
-    "scheduledDate": "2026-09-01",
-    "createdBy": "1b8f3c46-9e20-4a7d-b5c8-3f6a2d9e0c54",
+    "region": "WESTERN",
+    "status": "CREATED",
     "createdAt": "2026-08-29T09:14:32.118Z"
   }
 }
 ```
+
+### Why This Is Still `eventVersion` 1
+
+An earlier draft of this document named these fields `jobType`, `description` and `location`, carried `scheduledDate` and `createdBy`, and gave the creation status as `PENDING`. That draft was written before the `jobs` table existed and never described anything that was published: no producer implemented it, and no consumer read it.
+
+Correcting a payload that was never on the wire is not a schema change, so `eventVersion` stays at `1`. The rules above apply from this version onward — the next rename or removal of a field in this table does increment it.
 
 ## Message Key
 
@@ -127,7 +137,7 @@ A null key would round-robin the events of a job across partitions and lose that
 | `eventType` | PascalCase, past tense, matching its topic | `JobCreated`, `JobAssigned`, `JobStatusChanged` |
 | Consumer group | `assms-<consuming-service>-<topic>` | `assms-dispatch-job-created`, `assms-reporting-job-status-changed` |
 | `producer` | the repository service name, lowercase and hyphen-separated | `job-service`, `dispatch-service` |
-| Payload field | camelCase | `jobId`, `scheduledDate` |
+| Payload field | camelCase | `jobId`, `serviceCategory` |
 
 Event names are past tense because an event records something that has already happened. A topic and its `eventType` always describe the same fact in the two casings above, so `job-status-changed` carries `JobStatusChanged` and nothing else.
 
