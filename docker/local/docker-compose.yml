@@ -1,0 +1,25 @@
+services: 
+  mysql: 
+    image: mysql:8.0.40
+    container_name: assms-mysql
+    restart: unless-stopped
+    environment: 
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+    ports: 
+      - "3306:3306"
+    volumes: 
+      - assms-mysql-data:/var/lib/mysql
+      - ../../database:/docker-entrypoint-initdb.d
+    healthcheck: 
+      test: 
+        - CMD
+        - mysqladmin
+        - ping 
+        - -h 
+        - localhost
+      interval: 10s 
+      timeout: 5s 
+      retries: 10
+      start_period: 30s
+volumes: 
+  assms-mysql-data: 

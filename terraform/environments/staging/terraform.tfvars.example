@@ -1,2 +1,36 @@
-# Placeholder
+location            = "southeastasia"
+environment         = "staging"
+resource_group_name = "rg-assms-staging"
 
+vnet_name          = "vnet-assms-staging"
+vnet_address_space = ["10.20.0.0/16"]
+
+services_subnet_name             = "snet-assms-services-staging"
+services_subnet_address_prefixes = ["10.20.1.0/24"]
+
+platform_subnet_name             = "snet-assms-platform-staging"
+platform_subnet_address_prefixes = ["10.20.2.0/24"]
+
+database_subnet_name             = "snet-assms-database-staging"
+database_subnet_address_prefixes = ["10.20.3.0/24"]
+
+tags = {
+  Project     = "ASSMS"
+  Environment = "staging"
+  ManagedBy   = "Terraform"
+}
+
+mysql_server_name    = "mysql-assms-staging-XXXX"
+mysql_admin_username = "assmsadmin"
+mysql_admin_password = "REPLACE_WITH_A_STRONG_PASSWORD"
+mysql_storage_auto_grow_enabled = false
+
+kafka_vm_name          = "vm-assms-kafka-staging"
+kafka_vm_size          = "Standard_B2pls_v2"
+kafka_source_image_sku = "22_04-lts-arm64"
+kafka_admin_username   = "assmsadmin"
+kafka_ssh_public_key   = "ssh-ed25519 REPLACE_WITH_YOUR_PUBLIC_KEY"
+
+kafka_enable_public_ip         = false
+kafka_enable_ssh               = false
+kafka_ssh_allowed_source_cidrs = []

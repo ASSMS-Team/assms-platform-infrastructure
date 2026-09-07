@@ -1,0 +1,61 @@
+name: Terraform CI
+
+on:
+  pull_request:
+    branches:
+      - dev
+      - main
+    paths:
+      - 'terraform/**'
+      - '.github/workflows/terraform-ci.yml'
+  push:
+    branches:
+      - dev
+      - main
+    paths:
+      - 'terraform/**'
+      - '.github/workflows/terraform-ci.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  terraform-validation:
+    name: Terraform validation
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v4
+
+      - name: Check Terraform formatting
+        run: terraform fmt -check -recursive terraform
+
+      - name: Initialize and validate Terraform roots
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          # Reusable modules are validated through their consuming root module.
+          mapfile -t terraform_roots < <(
+            find terraform -type f -name '*.tf' -print0 |
+              while IFS= read -r -d '' terraform_file; do
+                if grep -qE '^[[:space:]]*terraform[[:space:]]*\{' "$terraform_file"; then
+                  dirname "$terraform_file"
+                fi
+              done | sort -u
+          )
+
+          if [ "${#terraform_roots[@]}" -eq 0 ]; then
+            echo 'No meaningful Terraform configuration roots found; validation is skipped.'
+            exit 0
+          fi
+
+          for terraform_root in "${terraform_roots[@]}"; do
+            echo "Validating ${terraform_root}"
+            terraform -chdir="$terraform_root" init -backend=false -input=false -lockfile=readonly
+            terraform -chdir="$terraform_root" validate
+          done
