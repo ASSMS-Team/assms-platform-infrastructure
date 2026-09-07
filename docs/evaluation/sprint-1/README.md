@@ -14,26 +14,26 @@ This folder contains the consolidated Sprint 1 documents for ASSMS Group 25. The
 
 ## Evaluation branch
 
-Use each repository's remote `dev` branch for the Sprint 1 evaluation. At the repository check on 7 September 2026, Dispatch, Platform Infrastructure and Reporting contained Sprint 1 commits on `dev` that were not yet in `main`.
+Use each repository's remote `main` branch for the Sprint 1 evaluation. The Sprint 1 work from Dispatch, Platform Infrastructure and Reporting was promoted from `dev` to `main` on 7 September 2026. Customer & Asset, Frontend and Job were already available on `main`.
 
-## GitHub Actions evidence checklist
+## GitHub Actions evidence
 
-The repositories are private, so an authenticated team member must capture these screenshots before the presentation. Do not mark a workflow successful based only on the presence of its YAML file.
+The following authenticated GitHub screenshots were captured on 7 September 2026. Each screenshot records the successful workflow conclusion and its completed jobs. The service screenshots also show uploaded test-result artifacts where the workflow produces one.
 
-| Repository | Required evidence | Actions page | Status |
+| Repository | Verified workflow run | Screenshot | Result |
 |---|---|---|---|
-| Customer & Asset | Latest successful `Customer Asset Service CI`; Terraform and .NET jobs; test artifact; staging CD if executed | <https://github.com/ASSMS-Team/assms-customer-asset-service/actions> | Capture required |
-| Dispatch | Latest successful `Dispatch Service CI`; Terraform and .NET jobs; test artifact | <https://github.com/ASSMS-Team/assms-dispatch-service/actions> | Capture required |
-| Frontend | Latest successful `Frontend CI`; Terraform, lint and build jobs; staging CD if executed | <https://github.com/ASSMS-Team/assms-frontend/actions> | Capture required |
-| Job | Latest successful `Job Service CI`; Terraform and .NET jobs; test artifact; staging CD if executed | <https://github.com/ASSMS-Team/assms-job-service/actions> | Capture required |
-| Platform Infrastructure | Latest successful `Terraform CI` run | <https://github.com/ASSMS-Team/assms-platform-infrastructure/actions> | Capture required |
-| Reporting | Latest successful `Reporting Service CI`; Terraform and .NET jobs; test artifact; staging CD if executed | <https://github.com/ASSMS-Team/assms-reporting-service/actions> | Capture required |
+| Customer & Asset | [`Customer Asset Service CI` run 33413844336](https://github.com/ASSMS-Team/assms-customer-asset-service/actions/runs/33413844336) | [customer-asset-ci.png](github-actions/customer-asset-ci.png) | Successful; Terraform and .NET build/test jobs; `customer-asset-test-results` artifact |
+| Dispatch | [`Dispatch Service CI` run 34138037868](https://github.com/ASSMS-Team/assms-dispatch-service/actions/runs/34138037868) | [dispatch-ci.png](github-actions/dispatch-ci.png) | Successful; Terraform and .NET build/test jobs; `dispatch-service-test-results` artifact |
+| Frontend | [`Frontend CI` run 34137926990](https://github.com/ASSMS-Team/assms-frontend/actions/runs/34137926990) | [frontend-ci.png](github-actions/frontend-ci.png) | Successful; Terraform, lint and production-build jobs; no test artifact is defined by this workflow |
+| Job | [`Job Service CI` run 33413962457](https://github.com/ASSMS-Team/assms-job-service/actions/runs/33413962457) | [job-service-ci.png](github-actions/job-service-ci.png) | Successful; Terraform and .NET build/test jobs; `job-service-test-results` artifact |
+| Platform Infrastructure | [`Terraform CI` run 34137843157](https://github.com/ASSMS-Team/assms-platform-infrastructure/actions/runs/34137843157) | [platform-terraform-ci.png](github-actions/platform-terraform-ci.png) | Successful Terraform validation; this workflow does not define a test artifact |
+| Reporting | [`Reporting Service CI` run 34138128606](https://github.com/ASSMS-Team/assms-reporting-service/actions/runs/34138128606) | [reporting-service-ci.png](github-actions/reporting-service-ci.png) | Successful; Terraform and .NET build/test jobs; `reporting-service-test-results` artifact |
 
-For every screenshot, include the workflow name, green conclusion, branch, commit SHA and run date. For test artifacts, show the artifact name and retention entry. If a CD workflow has not completed successfully, describe it as implemented rather than verified.
+These records verify CI only. A CD workflow is described as implemented unless a separate successful deployment run and runtime check are recorded.
 
 ## Repository verification recorded on 7 September 2026
 
-- All six remote `dev` branches contain their expected CI workflows.
+- All six remote `main` branches contain their expected CI workflows.
 - Terraform formatting passed.
 - All 13 Terraform roots validated successfully: bootstrap, staging and production roots across the six repositories.
 - Frontend lint and production build passed.
