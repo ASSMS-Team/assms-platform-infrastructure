@@ -1,5 +1,7 @@
 # ASSMS Sprint 1 Azure Infrastructure Status
 
+> Status reconciled with the six repository `dev` branches on 7 September 2026. Runtime statements below are limited to recorded staging evidence; they do not claim that production is deployed.
+
 ## Status at a Glance
 
 | Area | Status |
@@ -9,12 +11,12 @@
 | Service VM infrastructure | Completed |
 | Frontend F1 App Service infrastructure | Completed |
 | VM compute cost control | Completed — all five VMs deallocated |
-| Application deployment and runtime configuration | Not started |
+| Application deployment and runtime configuration | Partially completed — Customer, Job, Reporting and Frontend have recorded staging deployment evidence; Dispatch remains pending |
 | GitHub Actions CI | Completed |
-| GitHub Actions CD | Not started |
+| GitHub Actions CD | Implemented on `dev` for Customer, Job, Reporting and Frontend; successful run screenshots remain evaluation evidence to capture |
 | Prometheus/Grafana monitoring | Deferred to ASSMS-18 |
 
-This record describes the infrastructure actually provisioned for the After-Sales Service Management System (ASSMS). It intentionally does not describe application containers, deployed APIs, connection strings, secrets, or monitoring runtime because those are not yet implemented.
+This record describes the infrastructure provisioned for the After-Sales Service Management System (ASSMS) and the deployment capabilities recorded during Sprint 1. Customer, Job, Reporting and Frontend have staging deployment records. Dispatch deployment, Azure Kafka runtime integration, monitoring and production deployment remain outside the verified Sprint 1 boundary. Secrets and connection strings are intentionally excluded.
 
 ## 1. Project and Repository Architecture
 
@@ -69,8 +71,8 @@ flowchart LR
     D[Dispatch VM\n10.30.1.4]
     R[Reporting VM\n10.30.1.5]
   end
-  FE -->|future public API URLs| C
-  FE -->|future public API URLs| J
+  FE -->|public HTTPS API| C
+  FE -->|public HTTPS API| J
   SEA <-->|Global VNet peering| CI
   C --> K
   J --> K
@@ -146,17 +148,17 @@ Kafka software and Docker have not been deployed to the Azure VM. No SSH, public
 | Dispatch | `vm-assms-dispatch-staging` | Central India | `10.30.1.0/24` / `10.30.1.4` | `Standard_B2pls_v2`, Arm64 | No custom inbound rules |
 | Reporting | `vm-assms-reporting-staging` | Central India | `10.30.1.0/24` / `10.30.1.5` | `Standard_B2pls_v2`, Arm64 | No custom inbound rules |
 
-All service VMs use Ubuntu 22.04 Arm64, Standard_LRS OS disks, disabled password authentication, and Static Standard public IP resources for future controlled administration/deployment. Azure default `DenyAllInBound` remains effective: SSH, public application ports, MySQL, and Kafka are not exposed.
+All service VMs use Ubuntu 22.04 Arm64, Standard_LRS OS disks, disabled password authentication, and Static Standard public IP resources for controlled administration and deployment. Azure default `DenyAllInBound` remains effective outside reviewed temporary runner `/32` deployment rules: application ports, MySQL and Kafka are not exposed directly.
 
 Dispatch originally partially created its NSG, public IP, NIC, and association in Southeast Asia before quota prevented VM creation. Terraform then replaced only those Dispatch-owned resources during the Central India migration.
 
-No backend application is deployed to any VM.
+Customer, Job and Reporting have recorded staging deployment evidence behind Nginx with their containers bound to loopback. Dispatch has no recorded staging application deployment. This document does not claim that every service is currently running because the VMs may be deallocated for cost control.
 
 ## 7. ARM64 Decision
 
 Southeast Asia availability restrictions for preferred x64 B-series sizes led to the selected `Standard_B2pls_v2` Arm64 SKU and Ubuntu 22.04 Arm64 image. Application audits found .NET 8 / `net8.0`, managed MySqlConnector and Swagger dependencies, and no existing x64-only runtime identifiers or native dependencies in the inspected service projects.
 
-Current assessment: **likely safe with conditions**. Real Dockerfiles remain placeholders; future Dockerfiles must use multi-architecture .NET 8 images. Future package additions, especially Kafka client/runtime dependencies, require ARM64 build and test verification before deployment.
+Current assessment: **verified for the implemented staging deployment paths, with conditions**. The backend repositories contain multi-stage .NET 8 Dockerfiles, and the Customer, Job and Reporting CD workflows build and inspect `linux/arm64` images. Dispatch still requires runtime deployment evidence. Future native dependencies and Kafka client/runtime additions require renewed ARM64 build and test verification.
 
 ## 8. Frontend Azure Infrastructure
 
@@ -172,7 +174,7 @@ Current assessment: **likely safe with conditions**. Real Dockerfiles remain pla
 | FTP and publishing basic auth | Disabled |
 | Always On | Disabled |
 
-No React build, runtime stack, API URL, or frontend secret has been deployed/configured. F1 is appropriate for this university staging phase but has shared compute, 60 CPU minutes/day, 1 GB RAM, 1 GB storage, no production SLA, and may pause when free-tier quota is exhausted. A reviewed move to B1 is possible later if needed.
+The React production build has recorded staging deployment evidence on the Web App with the Customer API URL supplied at build time. The App Service uses `pm2 serve /home/site/wwwroot --no-daemon --spa` so direct client routes return the SPA shell. F1 is appropriate for this university staging phase but has shared compute, 60 CPU minutes/day, 1 GB RAM, 1 GB storage, no production SLA, and may pause when free-tier quota is exhausted. A reviewed move to B1 is possible later if needed.
 
 ## 9. Security Baseline
 
@@ -192,7 +194,7 @@ terraform providers lock `
   -platform=linux_amd64
 ```
 
-CD is not implemented.
+Staging CD workflow definitions are implemented on `dev` for Customer, Job, Reporting and Frontend. They run only after their CI gates pass, deploy the exact tested commit, use GitHub OIDC for Azure authentication, restrict temporary SSH to the runner `/32`, verify health endpoints and remove the temporary rule. Dispatch does not yet have a staging CD workflow. Successful private GitHub Actions run screenshots must be retained as evaluation evidence; the workflow files alone do not prove that every run succeeded.
 
 Key lessons recorded during Sprint 1:
 
@@ -226,9 +228,9 @@ Deallocation stops VM compute billing but preserves the VM, OS disk, NIC, IP con
 
 ## 12. Git and Delivery Status
 
-Branch flow is feature/task branch → pull request → `dev` → stable/final → `main`. The relevant provisioning branch is `ASSMS-17-azure-staging-provisioning`.
+Branch flow is feature/task branch → pull request → `dev` → stable/final → `main`. Sprint 1 evaluation should use the remote `dev` branch unless the team completes its release merge to `main`.
 
-PR/merge to `dev`: **pending**. No branch merge is implied by this document.
+The Sprint 1 CI and infrastructure work is merged into each repository's remote `dev` branch. At the 7 September 2026 repository check, Dispatch, Platform Infrastructure and Reporting still contained Sprint 1 commits on `dev` that were not in `main`.
 
 ### Completed
 
@@ -240,26 +242,25 @@ PR/merge to `dev`: **pending**. No branch merge is implied by this document.
 - [x] Frontend F1 App Service infrastructure
 - [x] Infrastructure security baseline
 - [x] VM cost-control deallocation
+- [x] Staging CD definitions for Customer, Job, Reporting and Frontend
+- [x] Recorded staging deployment verification for Customer, Job, Reporting and Frontend
 
 ### Not yet started
 
-- [ ] Real backend Dockerfiles and local Docker build/test
-- [ ] Docker/Kafka runtime on Azure VMs
-- [ ] Restricted SSH deployment access and backend application ports
-- [ ] Backend API deployment, environment configuration, MySQL/Kafka integration
-- [ ] React build deployment and frontend API URLs
-- [ ] GitHub Actions CD
-- [ ] Health, smoke, and end-to-end staging tests
+- [ ] Azure Kafka runtime and business-event integration
+- [ ] Dispatch staging application deployment and CD
+- [ ] End-to-end Kafka publication, consumption and Reporting projection verification
+- [ ] Cross-service end-to-end staging test
+- [ ] Successful private GitHub Actions run screenshots retained with the evaluation evidence
 - [ ] Prometheus/Grafana monitoring (ASSMS-18)
 
 ## 13. Future Deployment Sequence
 
-Infrastructure work pauses until the Sprint 1 developer implementation is stable. Future work, not started here:
+The remaining work after the verified Sprint 1 boundary is:
 
-1. Finalize service deployment ports.
-2. Implement and test real Dockerfiles locally.
-3. Configure restricted deployment SSH and install Docker on VMs.
-4. Deploy Customer, Job, Dispatch, Reporting, and Kafka runtime.
-5. Configure private MySQL/Kafka connectivity and application environment variables.
-6. Configure frontend public API URLs and deploy the React build.
-7. Implement CD, verify `/health`, and run end-to-end smoke tests.
+1. Capture successful GitHub Actions CI/CD run evidence from the private repositories.
+2. Deploy Dispatch through a reviewed staging CD path.
+3. Deploy and verify the Azure Kafka runtime.
+4. Demonstrate Job event publication, Reporting consumption and idempotent read-model updates.
+5. Run a complete cross-service staging test and retain its results.
+6. Implement and verify Prometheus/Grafana monitoring under ASSMS-18.
