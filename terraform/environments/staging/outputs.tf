@@ -33,6 +33,16 @@ output "platform_subnet_id" {
   value       = module.platform_subnet.id
 }
 
+output "api_management_subnet_id" {
+  description = "Dedicated subnet ID used by staging API Management."
+  value       = module.api_management_subnet.id
+}
+
+output "api_management_gateway_url" {
+  description = "Public gateway base URL for the ASSMS frontend."
+  value       = module.api_management.gateway_url
+}
+
 output "database_subnet_id" {
   description = "Resource ID of the database subnet delegated for MySQL Flexible Server."
   value       = module.database_subnet.id

@@ -34,6 +34,18 @@ module "platform_subnet" {
   address_prefixes     = var.platform_subnet_address_prefixes
 }
 
+# API Management has its own subnet. It must never share the platform, service
+# or database subnets because VNet-injected APIM reserves addresses for its
+# gateway and management components.
+module "api_management_subnet" {
+  source = "../../modules/subnet"
+
+  name                 = var.api_management_subnet_name
+  resource_group_name  = module.resource_group.name
+  virtual_network_name = module.vnet.name
+  address_prefixes     = var.api_management_subnet_address_prefixes
+}
+
 module "database_subnet" {
   source = "../../modules/subnet"
 
@@ -181,5 +193,21 @@ module "kafka_vm" {
   ssh_public_key       = var.kafka_ssh_public_key
   network_interface_id = module.kafka_nic.id
   source_image_sku     = var.kafka_source_image_sku
+  tags                 = var.tags
+}
+
+module "api_management" {
+  source = "../../modules/api_management"
+
+  name                 = var.api_management_name
+  location             = module.resource_group.location
+  resource_group_name  = module.resource_group.name
+  publisher_name       = var.api_management_publisher_name
+  publisher_email      = var.api_management_publisher_email
+  sku_name             = var.api_management_sku_name
+  virtual_network_type = var.api_management_virtual_network_type
+  subnet_id            = module.api_management_subnet.id
+  frontend_origin      = var.api_management_frontend_origin
+  backend_apis         = var.api_management_backend_apis
   tags                 = var.tags
 }

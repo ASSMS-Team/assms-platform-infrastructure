@@ -52,6 +52,18 @@ variable "platform_subnet_address_prefixes" {
   default     = ["10.20.2.0/24"]
 }
 
+variable "api_management_subnet_name" {
+  description = "Dedicated subnet for the staging API Management gateway."
+  type        = string
+  default     = "snet-assms-apim-staging"
+}
+
+variable "api_management_subnet_address_prefixes" {
+  description = "Dedicated APIM subnet address space. A /27 is the minimum for the selected design."
+  type        = list(string)
+  default     = ["10.20.4.0/27"]
+}
+
 variable "database_subnet_name" {
   description = "Name of the subnet reserved for future MySQL Flexible Server."
   type        = string
@@ -242,6 +254,48 @@ variable "kafka_enable_public_ip" {
   description = "Whether to create a public IP for the Kafka VM."
   type        = bool
   default     = false
+}
+
+variable "api_management_name" {
+  description = "Globally unique staging API Management name."
+  type        = string
+}
+
+variable "api_management_publisher_name" {
+  description = "Publisher name shown by API Management."
+  type        = string
+  default     = "ASSMS Group 25"
+}
+
+variable "api_management_publisher_email" {
+  description = "Operations contact email required by API Management."
+  type        = string
+}
+
+variable "api_management_sku_name" {
+  description = "APIM tier. Developer_1 is intended for non-production staging only."
+  type        = string
+  default     = "Developer_1"
+}
+
+variable "api_management_virtual_network_type" {
+  description = "External keeps the gateway public while giving it VNet access to backend services."
+  type        = string
+  default     = "External"
+}
+
+variable "api_management_frontend_origin" {
+  description = "Exact deployed frontend origin permitted by APIM CORS."
+  type        = string
+}
+
+variable "api_management_backend_apis" {
+  description = "Service API paths and backend HTTPS URLs consumed through APIM."
+  type = map(object({
+    display_name = string
+    path         = string
+    url          = string
+  }))
 }
 variable "kafka_enable_ssh" {
   description = "Whether to allow SSH from explicitly approved CIDRs."
