@@ -11,6 +11,10 @@ services_subnet_address_prefixes = ["10.20.1.0/24"]
 platform_subnet_name             = "snet-assms-platform-staging"
 platform_subnet_address_prefixes = ["10.20.2.0/24"]
 
+api_management_subnet_name             = "snet-assms-apim-staging"
+api_management_subnet_address_prefixes = ["10.20.4.0/27"]
+api_management_nsg_name                = "nsg-assms-apim-staging"
+
 database_subnet_name             = "snet-assms-database-staging"
 database_subnet_address_prefixes = ["10.20.3.0/24"]
 
@@ -34,3 +38,36 @@ kafka_ssh_public_key   = "ssh-ed25519 REPLACE_WITH_YOUR_PUBLIC_KEY"
 kafka_enable_public_ip         = false
 kafka_enable_ssh               = false
 kafka_ssh_allowed_source_cidrs = []
+
+# Developer_1 is suitable only for the course staging environment. Values below
+# are examples: use the deployed service HTTPS origins, not localhost or private
+# credentials. The frontend reaches each service through this one APIM gateway.
+api_management_name                  = "apim-assms-staging-XXXX"
+api_management_publisher_name        = "ASSMS Group 25"
+api_management_publisher_email       = "group25@example.com"
+api_management_sku_name              = "Developer_1"
+api_management_virtual_network_type  = "External"
+api_management_frontend_origin        = "https://app-assms-frontend-staging-XXXX.azurewebsites.net"
+
+api_management_backend_apis = {
+  customer = {
+    display_name = "Customer and Asset Service"
+    path         = "customer"
+    url          = "https://customer-assms-staging.example.com"
+  }
+  jobs = {
+    display_name = "Job Service"
+    path         = "jobs"
+    url          = "https://job-assms-staging.example.com"
+  }
+  dispatch = {
+    display_name = "Dispatch Service"
+    path         = "dispatch"
+    url          = "https://dispatch-assms-staging.example.com"
+  }
+  reports = {
+    display_name = "Reporting Service"
+    path         = "reports"
+    url          = "https://reporting-assms-staging.example.com"
+  }
+}

@@ -62,6 +62,13 @@ The platform Terraform prepares a private MySQL Flexible Server in the delegated
 
 The Kafka VM is attached to the platform subnet. Kafka port 9092 is reachable only from the private services subnet. Prometheus/Grafana access on ports 9090 and 3000 is postponed to ASSMS-18 and is not currently allowed by the Kafka NSG. Kafka software, Prometheus, and Grafana are intentionally not installed by Terraform. A public IP and SSH access are disabled by default and remain explicit configuration choices.
 
+## API Management gateway
+
+Sprint 2 adds Azure API Management as the single browser-facing route to the
+Customer & Asset, Job, Dispatch and Reporting services. The gateway owns no
+business data and forwards to service-owned HTTPS backends through `/customer`,
+`/jobs`, `/dispatch` and `/reports` prefixes. See [the APIM gateway runbook](docs/deployment/api-management-gateway.md).
+
 ## Local Kafka Development
 
 The local development foundation runs a single Apache Kafka broker in KRaft mode with Docker Compose. See [Local Kafka Development](docs/kafka/local-development.md) for startup, topic initialization, smoke testing, and consumer-group guidance.
