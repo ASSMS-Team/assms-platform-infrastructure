@@ -64,6 +64,12 @@ variable "api_management_subnet_address_prefixes" {
   default     = ["10.20.4.0/27"]
 }
 
+variable "api_management_nsg_name" {
+  description = "Name of the Network Security Group required by the APIM subnet."
+  type        = string
+  default     = "nsg-assms-apim-staging"
+}
+
 variable "database_subnet_name" {
   description = "Name of the subnet reserved for future MySQL Flexible Server."
   type        = string

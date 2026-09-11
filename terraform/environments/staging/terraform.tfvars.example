@@ -13,6 +13,7 @@ platform_subnet_address_prefixes = ["10.20.2.0/24"]
 
 api_management_subnet_name             = "snet-assms-apim-staging"
 api_management_subnet_address_prefixes = ["10.20.4.0/27"]
+api_management_nsg_name                = "nsg-assms-apim-staging"
 
 database_subnet_name             = "snet-assms-database-staging"
 database_subnet_address_prefixes = ["10.20.3.0/24"]

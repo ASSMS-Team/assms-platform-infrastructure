@@ -46,6 +46,101 @@ module "api_management_subnet" {
   address_prefixes     = var.api_management_subnet_address_prefixes
 }
 
+# Classic Developer-tier APIM injected into a VNet requires an NSG. These
+# rules implement the required external gateway and management-plane traffic
+# and the Azure dependencies described by Microsoft for APIM VNet injection.
+locals {
+  api_management_security_rules = {
+    AllowHttpsFromInternet = {
+      priority                     = 100
+      direction                    = "Inbound"
+      access                       = "Allow"
+      protocol                     = "Tcp"
+      destination_port_ranges      = ["443"]
+      source_address_prefixes      = ["Internet"]
+      destination_address_prefixes = ["VirtualNetwork"]
+      description                  = "Allow HTTPS client traffic to the external APIM gateway."
+    }
+    AllowApimManagementPlane = {
+      priority                     = 110
+      direction                    = "Inbound"
+      access                       = "Allow"
+      protocol                     = "Tcp"
+      destination_port_ranges      = ["3443"]
+      source_address_prefixes      = ["ApiManagement"]
+      destination_address_prefixes = ["VirtualNetwork"]
+      description                  = "Allow the Azure API Management control plane."
+    }
+    AllowAzureLoadBalancerHealthProbe = {
+      priority                     = 120
+      direction                    = "Inbound"
+      access                       = "Allow"
+      protocol                     = "Tcp"
+      destination_port_ranges      = ["6390"]
+      source_address_prefixes      = ["AzureLoadBalancer"]
+      destination_address_prefixes = ["VirtualNetwork"]
+      description                  = "Allow Azure Load Balancer health probes for the APIM subnet."
+    }
+    AllowCertificateValidation = {
+      priority                     = 100
+      direction                    = "Outbound"
+      access                       = "Allow"
+      protocol                     = "Tcp"
+      destination_port_ranges      = ["80"]
+      source_address_prefixes      = ["VirtualNetwork"]
+      destination_address_prefixes = ["Internet"]
+      description                  = "Allow certificate validation and APIM management dependencies."
+    }
+    AllowStorage = {
+      priority                     = 110
+      direction                    = "Outbound"
+      access                       = "Allow"
+      protocol                     = "Tcp"
+      destination_port_ranges      = ["443"]
+      source_address_prefixes      = ["VirtualNetwork"]
+      destination_address_prefixes = ["Storage"]
+      description                  = "Allow the Azure Storage dependency required by APIM."
+    }
+    AllowAzureActiveDirectory = {
+      priority                     = 120
+      direction                    = "Outbound"
+      access                       = "Allow"
+      protocol                     = "Tcp"
+      destination_port_ranges      = ["443"]
+      source_address_prefixes      = ["VirtualNetwork"]
+      destination_address_prefixes = ["AzureActiveDirectory"]
+      description                  = "Allow Microsoft Entra ID dependencies used by APIM."
+    }
+    AllowAzureMonitor = {
+      priority                     = 130
+      direction                    = "Outbound"
+      access                       = "Allow"
+      protocol                     = "Tcp"
+      destination_port_ranges      = ["443", "1886"]
+      source_address_prefixes      = ["VirtualNetwork"]
+      destination_address_prefixes = ["AzureMonitor"]
+      description                  = "Allow APIM diagnostics, metrics and resource health."
+    }
+  }
+}
+
+module "api_management_nsg" {
+  source = "../../modules/nsg"
+
+  name                = var.api_management_nsg_name
+  resource_group_name = module.resource_group.name
+  location            = module.resource_group.location
+  security_rules      = local.api_management_security_rules
+  tags                = var.tags
+}
+
+resource "azurerm_subnet_network_security_group_association" "api_management" {
+  subnet_id                 = module.api_management_subnet.id
+  network_security_group_id = module.api_management_nsg.id
+
+  depends_on = [module.api_management_nsg]
+}
+
 module "database_subnet" {
   source = "../../modules/subnet"
 
@@ -210,4 +305,6 @@ module "api_management" {
   frontend_origin      = var.api_management_frontend_origin
   backend_apis         = var.api_management_backend_apis
   tags                 = var.tags
+
+  depends_on = [azurerm_subnet_network_security_group_association.api_management]
 }
