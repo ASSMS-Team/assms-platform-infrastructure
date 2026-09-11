@@ -21,9 +21,11 @@ variable "security_rules" {
     access                       = string
     protocol                     = string
     destination_port_ranges      = list(string)
-    source_address_prefixes      = list(string)
-    destination_address_prefixes = optional(list(string), ["*"])
-    description                  = string
+    source_address_prefix         = optional(string)
+    source_address_prefixes       = optional(list(string))
+    destination_address_prefix    = optional(string)
+    destination_address_prefixes  = optional(list(string), ["*"])
+    description                   = string
   }))
   default = {}
 }
