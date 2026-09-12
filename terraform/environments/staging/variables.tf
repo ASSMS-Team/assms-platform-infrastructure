@@ -262,6 +262,12 @@ variable "kafka_enable_public_ip" {
   default     = false
 }
 
+variable "api_management_enabled" {
+  description = "Whether the staging API Management gateway is provisioned. Keep disabled outside gateway testing and evaluations to avoid Developer-tier charges."
+  type        = bool
+  default     = false
+}
+
 variable "api_management_name" {
   description = "Globally unique staging API Management name."
   type        = string
