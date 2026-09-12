@@ -42,6 +42,7 @@ kafka_ssh_allowed_source_cidrs = []
 # Developer_1 is suitable only for the course staging environment. Values below
 # are examples: use the deployed service HTTPS origins, not localhost or private
 # credentials. The frontend reaches each service through this one APIM gateway.
+api_management_enabled               = false # Set true before APIM gateway testing or evaluation.
 api_management_name                  = "apim-assms-staging-XXXX"
 api_management_publisher_name        = "ASSMS Group 25"
 api_management_publisher_email       = "group25@example.com"

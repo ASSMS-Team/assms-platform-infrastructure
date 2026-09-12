@@ -292,6 +292,7 @@ module "kafka_vm" {
 }
 
 module "api_management" {
+  count  = var.api_management_enabled ? 1 : 0
   source = "../../modules/api_management"
 
   name                 = var.api_management_name

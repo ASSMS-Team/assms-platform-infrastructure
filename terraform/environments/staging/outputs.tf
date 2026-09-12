@@ -40,7 +40,7 @@ output "api_management_subnet_id" {
 
 output "api_management_gateway_url" {
   description = "Public gateway base URL for the ASSMS frontend."
-  value       = module.api_management.gateway_url
+  value       = try(module.api_management[0].gateway_url, null)
 }
 
 output "database_subnet_id" {
