@@ -180,15 +180,15 @@ Consumers must store them at sub-second precision. Job Service's `jobs.assigned_
 
 ### Ordering Against `JobCreated`
 
-Both events are keyed by `jobId`, so `JobCreated` and the `JobAssigned` that follows it land on the same partition in the order they were published. A consumer of both therefore never sees the assignment of a job it has not yet seen created.
+Kafka ordering is scoped to one topic partition. `JobCreated` and `JobAssigned` use different topics, so matching `jobId` keys do **not** create an ordering guarantee between them. A consumer of both topics must accept that an assignment can arrive before the corresponding creation event.
 
-That holds across topics only because each consumer reads them in its own loop; it is not a transactional guarantee. Reporting subscribes to `job-created` and `job-assigned` with two separate groups, and the two loops make progress independently, so a `JobAssigned` can be projected while the `JobCreated` for that job is still unread. Reporting handles this by keeping `job_assignment_projection` as a table of its own, keyed by `jobId`: each consumer upserts its own fact, and the report joins them when both exist.
+The Job Service can safely apply `JobAssigned` because it persisted the job before publishing `JobCreated`; it does not rely on cross-topic ordering. Reporting subscribes to `job-created` and `job-assigned` with two separate groups, and the two loops make progress independently. It keeps `job_assignment_projection` as a table of its own, keyed by `jobId`: each consumer upserts its own fact, and the report joins them when both exist.
 
 ## Message Key
 
 Every message on every ASSMS topic is keyed by `jobId`, serialized as the plain UUID string with no quotes and no JSON wrapping. The key is not a substitute for the `jobId` inside the payload; it is present in both places, and the two must always match.
 
-`jobId` is the key because Kafka guarantees ordering within a partition only, and it routes by key hash. Keying by `jobId` puts every event about one job — its creation, its assignment, and each of its status changes — on the same partition, in the order the producing services published them. A consumer therefore never sees a job assigned before it was created, or an older status after a newer one, for that job.
+`jobId` is the key because Kafka routes by key hash and guarantees ordering within a partition of a single topic. This preserves the order produced for one job within `job-created`, within `job-assigned`, and within `job-status-changed`; it does not order facts across those topics. Consumers must therefore be idempotent and able to reconcile cross-topic facts that arrive in either order.
 
 Ordering is guaranteed per job, not across jobs. Two different jobs may be processed in any relative order, which is correct: nothing in ASSMS depends on the relative ordering of unrelated jobs.
 

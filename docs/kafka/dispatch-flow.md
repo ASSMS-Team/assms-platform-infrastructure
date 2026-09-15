@@ -106,7 +106,7 @@ The required skill is **not** the service category itself. `JobCreated` carries 
 
 The skill string must equal a `technician_skills.skill` value character for character. Only the category side of the lookup is case-insensitive.
 
-**A service category with no configured mapping is quarantined, not guessed:** `RequiredSkillResolver.TryResolve` returns false, `CandidateEvaluationService` returns `UnmappedServiceCategory`, the consumer commits past the event, and nothing is written anywhere — no evaluation row, no log of a business failure, nothing for a Dispatcher to find. Adding a sixth service category upstream without adding its mapping here makes every job in that category vanish.
+**A service category with no configured mapping is quarantined, not guessed:** `RequiredSkillResolver.TryResolve` returns false, `CandidateEvaluationService` returns `UnmappedServiceCategory`, and the consumer commits past the event after writing a structured error log with the event ID, job ID and reason. No evaluation row or Dispatcher-visible attention record is created. Adding a sixth service category upstream without adding its mapping here therefore leaves the job unassigned until the mapping is added and the event is replayed.
 
 `RequiredSkillMappingTests` guards this: `CompleteMapping_CoversEveryServiceCategoryJobCreatedCanCarry` fails if the category list and the mapping ever disagree.
 
