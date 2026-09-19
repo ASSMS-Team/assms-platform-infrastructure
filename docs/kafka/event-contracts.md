@@ -109,11 +109,86 @@ An earlier draft of this document named these fields `jobType`, `description` an
 
 Correcting a payload that was never on the wire is not a schema change, so `eventVersion` stays at `1`. The rules above apply from this version onward — the next rename or removal of a field in this table does increment it.
 
+## `JobAssigned`
+
+Published by Dispatch Service to `job-assigned` when an assignment has been committed. Envelope values are `eventType` `JobAssigned`, `eventVersion` `1`, and `producer` `dispatch-service`.
+
+This is the only event Dispatch produces. It is read independently by Job Service, which records the assignment against the job and moves its status to `ASSIGNED`, and by Reporting Service, which projects it into the jobs-by-technician report.
+
+The event is written to `assignment_outbox` in the same transaction that writes the assignment, and published from there afterwards. The envelope is serialized once, at that commit, and sent byte for byte on every attempt — so a retry carries the original `eventId` and `occurredAt` rather than minting new ones.
+
+### Payload Fields
+
+Six fields, exactly as `DispatchService.Messaging.Contracts.JobAssignedPayload` declares them.
+
+| Field | Type | Nullable | Description |
+| --- | --- | --- | --- |
+| `assignmentId` | string (UUID) | no | Id of the `technician_assignments` row Dispatch wrote. Distinct from `jobId`, because US-15 reassignment will produce a second assignment for the same job. |
+| `jobId` | string (UUID) | no | The job that was assigned, as the Job Service issued it. Also the message key, and the value both consumers key their rows on. |
+| `jobReference` | string | no | The `JOB-` handle, carried so a consumer can name the job the way an Agent would say it without calling back to the Job Service. |
+| `technicianId` | string (UUID) | no | The technician the job was assigned to, as held by Dispatch. |
+| `technicianReference` | string | no | The technician's stable, human-readable handle, unique in `technicians`. Denormalised deliberately — see below. |
+| `assignedAt` | string (ISO 8601, UTC) | no | When Dispatch committed the assignment. The envelope's `occurredAt` carries the same instant. |
+
+**There is no `technicianName`, no `region`, and no `status` on this event.** Each was considered and left off:
+
+- A **name** is mutable and would be a snapshot that silently ages. `technicianReference` identifies the same person and is stable, so consumers carry the reference and resolve a display name from Dispatch only if they ever need one.
+- **Region** is already on `JobCreated`, which both consumers of `JobAssigned` have also seen. Republishing it would create a second copy of one fact that could disagree with the first.
+- **Status** is what the event *is*. `JobAssigned` means the job became `ASSIGNED`; a status field would let a payload contradict its own event type. Job Service therefore supplies `ASSIGNED` from its own contract constant rather than reading it off the wire.
+
+`technicianReference` is denormalised onto the event for the same reason `jobReference` is: Reporting has no technician table and no route to Dispatch's one, and giving a read model an HTTP dependency on Dispatch would couple a report to that service being live.
+
+### Example Message
+
+Key: `9f1c7a24-8f4e-4c3a-9a52-2b6d0f5e1a77`
+
+```json
+{
+  "eventId": "7b41e9c6-0d38-4a52-9f17-3c8b6e2d5a04",
+  "eventType": "JobAssigned",
+  "eventVersion": 1,
+  "occurredAt": "2026-09-14T09:15:02.446Z",
+  "producer": "dispatch-service",
+  "payload": {
+    "assignmentId": "e2d7b415-9a63-4c08-b1f5-7d4e2a9c6301",
+    "jobId": "9f1c7a24-8f4e-4c3a-9a52-2b6d0f5e1a77",
+    "jobReference": "JOB-7K2M9X",
+    "technicianId": "5c8a3f71-4b29-4e6d-8a03-9f1b7c2e4d58",
+    "technicianReference": "TECH-0001",
+    "assignedAt": "2026-09-14T09:15:02.446Z"
+  }
+}
+```
+
+### Keeping the Three Copies Identical
+
+Dispatch, Job Service and Reporting Service each declare their own `JobAssignedPayload`. Nothing at compile time catches a field that has drifted between them: a renamed field simply deserializes as `null` forever, the job silently stops being updated, and the report silently stops growing.
+
+Three tests stand in for that missing check, one per service, and each asserts the field list by reflection against the six names above:
+
+- `DispatchService.Tests.JobAssignedFlowTests.JobAssignedPayload_DeclaresExactlySixFields` — and `JobAssignedEnvelope_SerializesToTheContractsWireShape`, which pins the camelCase wire keys and the trailing `Z` on both timestamps.
+- `JobService.Tests.JobAssignedContractTests.PayloadType_DeclaresExactlySixFields`
+- `ReportingService.Tests.JobAssignedConsumerTests.PayloadType_DeclaresExactlyTheSixFieldsDispatchPublishes`
+
+Adding a field to this event means updating this table, all three payload classes, and all three tests in the same change.
+
+### Timestamp Semantics
+
+`occurredAt` and `assignedAt` are the same instant, read from the clock once when the assignment is built. They are UTC, serialized ISO 8601 with a trailing `Z`.
+
+Consumers must store them at sub-second precision. Job Service's `jobs.assigned_at` is `TIMESTAMP(6)` for exactly this reason: it compares the incoming `assignedAt` against the stored one to reject a stale or redelivered assignment, and truncating to whole seconds would make two assignments in the same second indistinguishable — collapsing the comparison that guard depends on.
+
+### Ordering Against `JobCreated`
+
+Kafka ordering is scoped to one topic partition. `JobCreated` and `JobAssigned` use different topics, so matching `jobId` keys do **not** create an ordering guarantee between them. A consumer of both topics must accept that an assignment can arrive before the corresponding creation event.
+
+The Job Service can safely apply `JobAssigned` because it persisted the job before publishing `JobCreated`; it does not rely on cross-topic ordering. Reporting subscribes to `job-created` and `job-assigned` with two separate groups, and the two loops make progress independently. It keeps `job_assignment_projection` as a table of its own, keyed by `jobId`: each consumer upserts its own fact, and the report joins them when both exist.
+
 ## Message Key
 
 Every message on every ASSMS topic is keyed by `jobId`, serialized as the plain UUID string with no quotes and no JSON wrapping. The key is not a substitute for the `jobId` inside the payload; it is present in both places, and the two must always match.
 
-`jobId` is the key because Kafka guarantees ordering within a partition only, and it routes by key hash. Keying by `jobId` puts every event about one job — its creation, its assignment, and each of its status changes — on the same partition, in the order the producing services published them. A consumer therefore never sees a job assigned before it was created, or an older status after a newer one, for that job.
+`jobId` is the key because Kafka routes by key hash and guarantees ordering within a partition of a single topic. This preserves the order produced for one job within `job-created`, within `job-assigned`, and within `job-status-changed`; it does not order facts across those topics. Consumers must therefore be idempotent and able to reconcile cross-topic facts that arrive in either order.
 
 Ordering is guaranteed per job, not across jobs. Two different jobs may be processed in any relative order, which is correct: nothing in ASSMS depends on the relative ordering of unrelated jobs.
 
@@ -143,8 +218,8 @@ Event names are past tense because an event records something that has already h
 
 ## Sprint 2 Scope
 
-**`JobAssigned` and `JobStatusChanged` payloads are not defined yet.** Both are Sprint 2 work.
+**`JobStatusChanged` is still not defined.** `JobAssigned` was defined above in Sprint 2 under ASSMS-27 and is now implemented; `JobStatusChanged` remains open.
 
-What is already fixed for them in Sprint 1 is everything outside the payload: their topics exist, their producer and consumer-group mapping is in the table above, they will carry the same six-field envelope, they will be keyed by `jobId`, and they will use the same JSON serialization and naming rules. Only the contents of their `payload` objects remain open.
+What is already fixed for `JobStatusChanged` is everything outside the payload: its topic exists, its producer and consumer-group mapping is in the table above, it will carry the same six-field envelope, it will be keyed by `jobId`, and it will use the same JSON serialization and naming rules. Only the contents of its `payload` object remain open.
 
-Nothing may be implemented against a guessed `JobAssigned` or `JobStatusChanged` payload. This document must be extended with their field lists and example messages in Sprint 2, before Dispatch Service produces `job-assigned` or Job Service produces `job-status-changed`.
+Nothing may be implemented against a guessed `JobStatusChanged` payload. This document must be extended with its field list and example message before Job Service produces `job-status-changed`.

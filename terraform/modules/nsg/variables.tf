@@ -14,15 +14,18 @@ variable "location" {
 }
 
 variable "security_rules" {
-  description = "Inbound security rules keyed by rule name."
+  description = "Network security rules keyed by rule name."
   type = map(object({
-    priority                = number
-    direction               = string
-    access                  = string
-    protocol                = string
-    destination_port_ranges = list(string)
-    source_address_prefixes = list(string)
-    description             = string
+    priority                     = number
+    direction                    = string
+    access                       = string
+    protocol                     = string
+    destination_port_ranges      = list(string)
+    source_address_prefix        = optional(string)
+    source_address_prefixes      = optional(list(string))
+    destination_address_prefix   = optional(string)
+    destination_address_prefixes = optional(list(string), ["*"])
+    description                  = string
   }))
   default = {}
 }
