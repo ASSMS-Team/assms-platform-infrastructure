@@ -26,10 +26,33 @@ The staging Kafka broker runs on VM `10.20.2.4:9092`. The `kafka-exporter` conta
 - `assms-reporting-job-created`
 - `assms-job-job-assigned`
 - `assms-reporting-job-assigned`
+- `assms-reporting-job-status-changed`
 
 ---
 
-## 3. Producer & Outbox Metrics Standard
+## 3. Sprint 3 Job Lifecycle & Completion Metrics
+
+Job Service instruments job lifecycle state transitions and completion metrics:
+
+```csharp
+// Total job lifecycle transitions (e.g., ASSIGNED -> IN_PROGRESS, IN_PROGRESS -> COMPLETED)
+public static readonly Counter StatusTransitionsTotal = Metrics.CreateCounter(
+    "assms_job_status_transitions_total",
+    "Total number of job status transitions recorded.",
+    new CounterConfiguration { LabelNames = new[] { "old_status", "new_status" } });
+
+// Total successfully completed jobs
+public static readonly Counter JobCompletionsTotal = Metrics.CreateCounter(
+    "assms_job_completions_total",
+    "Total number of completed jobs.",
+    new CounterConfiguration { LabelNames = new[] { "service_category", "priority" } });
+
+// JobStatusChanged event publishing results
+public static readonly Counter StatusEventsPublishedTotal = Metrics.CreateCounter(
+    "assms_job_status_events_published_total",
+    "Total JobStatusChanged Kafka events published.",
+    new CounterConfiguration { LabelNames = new[] { "event_type", "result" } });
+```
 
 Dispatch Service uses an **Outbox Pattern** to ensure transactional atomicity between MySQL database writes and Kafka publishing.
 
