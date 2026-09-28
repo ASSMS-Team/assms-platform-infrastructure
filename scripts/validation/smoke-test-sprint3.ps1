@@ -4,15 +4,15 @@
 .DESCRIPTION
     Validates the end-to-end technician workflow against Azure staging:
     1. Authenticates (or uses JWT)
-    2. Creates and assigns a job (Dispatch flow)
-    3. Starts the job (PUT /api/jobs/{id}/start)
-    4. Logs a work record (POST /api/jobs/{id}/work-records)
-    5. Completes the job (PUT /api/jobs/{id}/complete)
+    2. Lists jobs or uses specified -JobId
+    3. Starts the job (POST /api/jobs/{id}/start with { technicianId: "..." })
+    4. Logs a work record (POST /api/jobs/{id}/work-records with { technicianId: "...", content: "..." })
+    5. Completes the job (POST /api/jobs/{id}/complete with { technicianId: "..." })
     6. Verifies Kafka status change publication and Reporting Service projection update.
 .PARAMETER BaseUrl
     The APIM gateway URL or backend URL (e.g. https://apim-assms-staging.azure-api.net).
 .PARAMETER AuthToken
-    Bearer JWT token for authorization (Technician / Dispatcher role).
+    Bearer JWT token for authorization (Technician / Dispatcher / Staff role).
 .EXAMPLE
     .\smoke-test-sprint3.ps1 -BaseUrl "https://apim-assms-staging.azure-api.net" -AuthToken "eyJhbGci..."
 #>
@@ -28,7 +28,7 @@ param(
     [string]$JobId,
 
     [Parameter(Mandatory = $false)]
-    [string]$TechnicianId = "tech-001"
+    [string]$TechnicianId = "5c8a3f71-4b29-4e6d-8a03-9f1b7c2e4d58"
 )
 
 $ErrorActionPreference = "Stop"
@@ -57,19 +57,25 @@ $jobEndpoint = if ($isApim) { "$cleanBase/jobs/api/jobs" } else { "$cleanBase/ap
 $reportEndpoint = if ($isApim) { "$cleanBase/reports/api/reports" } else { "$cleanBase/api/reports" }
 
 Write-Host "Gateway/Service URL: $cleanBase" -ForegroundColor Yellow
-Write-Host "Using Job endpoint:  $jobEndpoint" -ForegroundColor Gray
+Write-Host "Using Job endpoint:    $jobEndpoint" -ForegroundColor Gray
 Write-Host "Using Report endpoint: $reportEndpoint" -ForegroundColor Gray
 
-# Step A: Validate Job ID
+# Step A: Validate or Pick Job ID
 if (-not $JobId) {
     Write-Host "`n[1/5] Listing existing jobs to pick an assigned job..." -ForegroundColor Yellow
     try {
         $jobsResponse = Invoke-RestMethod -Uri $jobEndpoint -Method Get -Headers $headers -TimeoutSec 15
         if ($jobsResponse.Count -gt 0) {
-            $JobId = $jobsResponse[0].id
-            Write-Host "Selected Job ID: $JobId (Reference: $($jobsResponse[0].jobReference))" -ForegroundColor Green
+            # Find an assigned job or the first job
+            $candidate = $jobsResponse | Where-Object { $_.status -eq "ASSIGNED" } | Select-Object -First 1
+            if (-not $candidate) { $candidate = $jobsResponse[0] }
+            $JobId = $candidate.id
+            if ($candidate.assignedTechnicianId) {
+                $TechnicianId = $candidate.assignedTechnicianId
+            }
+            Write-Host "Selected Job ID: $JobId (Ref: $($candidate.jobReference), Status: $($candidate.status), Tech: $TechnicianId)" -ForegroundColor Green
         } else {
-            Write-Error "No jobs found. Please create or assign a job first or specify -JobId."
+            Write-Error "No jobs found. Please create and assign a job first or specify -JobId."
             exit 1
         }
     }
@@ -79,66 +85,66 @@ if (-not $JobId) {
     }
 }
 
-# Step B: Start the Job
-Write-Host "`n[2/5] Starting Job ($JobId)..." -ForegroundColor Yellow
+# Step B: Start the Job (POST api/jobs/{id}/start)
+Write-Host "`n[2/5] Starting Job ($JobId) with Technician ($TechnicianId)..." -ForegroundColor Yellow
 try {
     $startBody = @{
         technicianId = $TechnicianId
-        startedAt = (Get-Date).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ")
     } | ConvertTo-Json
 
-    $startResp = Invoke-RestMethod -Uri "$jobEndpoint/$JobId/start" -Method Put -Headers $headers -Body $startBody -TimeoutSec 15
+    $startResp = Invoke-RestMethod -Uri "$jobEndpoint/$JobId/start" -Method Post -Headers $headers -Body $startBody -TimeoutSec 15
     Write-Host "Job started successfully! Status: $($startResp.status)" -ForegroundColor Green
 }
 catch {
-    Write-Host "Warning / Start info: $($_.Exception.Message)" -ForegroundColor Yellow
+    Write-Host "Start note: $($_.Exception.Message)" -ForegroundColor Yellow
 }
 
-# Step C: Add a Service Work Record
+# Step C: Add a Service Work Record (POST api/jobs/{id}/work-records)
 Write-Host "`n[3/5] Adding Service Work Record to Job ($JobId)..." -ForegroundColor Yellow
 try {
     $workRecordBody = @{
         technicianId = $TechnicianId
-        workDescription = "Completed automated diagnostic inspection and part replacement."
-        partsUsed = @("Sensor-V3", "O-Ring-Seal")
-        hoursSpent = 1.5
-        recordedAt = (Get-Date).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ")
+        content = "Replaced faulty optical sensor and recalibrated conveyor belt. Operational tests passed at 100% capacity."
     } | ConvertTo-Json
 
     $recordResp = Invoke-RestMethod -Uri "$jobEndpoint/$JobId/work-records" -Method Post -Headers $headers -Body $workRecordBody -TimeoutSec 15
     Write-Host "Work record added successfully! Record ID: $($recordResp.id)" -ForegroundColor Green
 }
 catch {
-    Write-Host "Work record info: $($_.Exception.Message)" -ForegroundColor Yellow
+    Write-Host "Work record note: $($_.Exception.Message)" -ForegroundColor Yellow
 }
 
-# Step D: Complete the Job
+# Step D: Complete the Job (POST api/jobs/{id}/complete)
 Write-Host "`n[4/5] Completing Job ($JobId)..." -ForegroundColor Yellow
 try {
     $completeBody = @{
         technicianId = $TechnicianId
-        completedAt = (Get-Date).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ")
-        completionNotes = "Job finished and tested successfully."
     } | ConvertTo-Json
 
-    $completeResp = Invoke-RestMethod -Uri "$jobEndpoint/$JobId/complete" -Method Put -Headers $headers -Body $completeBody -TimeoutSec 15
+    $completeResp = Invoke-RestMethod -Uri "$jobEndpoint/$JobId/complete" -Method Post -Headers $headers -Body $completeBody -TimeoutSec 15
     Write-Host "Job completed successfully! Final Status: $($completeResp.status)" -ForegroundColor Green
 }
 catch {
-    Write-Host "Complete info: $($_.Exception.Message)" -ForegroundColor Yellow
+    Write-Host "Complete note: $($_.Exception.Message)" -ForegroundColor Yellow
 }
 
 # Step E: Verify Kafka Event Consumption & Reporting Projections
-Write-Host "`n[5/5] Waiting 5 seconds for Kafka event processing into Reporting Service..." -ForegroundColor Yellow
+Write-Host "`n[5/5] Waiting 5 seconds for Kafka event consumption into Reporting Service..." -ForegroundColor Yellow
 Start-Sleep -Seconds 5
 
 try {
     $reportResp = Invoke-RestMethod -Uri "$reportEndpoint/job-completions" -Method Get -Headers $headers -TimeoutSec 15
     Write-Host "Reporting Service job completions query succeeded!" -ForegroundColor Green
-    Write-Host "Total completed records projected: $($reportResp.Count)" -ForegroundColor Green
+    Write-Host "Total completed jobs reported: $($reportResp.total)" -ForegroundColor Green
+    if ($reportResp.jobs) {
+        $matched = $reportResp.jobs | Where-Object { $_.jobId -eq $JobId }
+        if ($matched) {
+            Write-Host "Confirmed: Job $JobId is present in Reporting Service completions!" -ForegroundColor Green
+        }
+    }
 }
 catch {
-    Write-Host "Reporting projection query info: $($_.Exception.Message)" -ForegroundColor Yellow
+    Write-Host "Reporting projection query note: $($_.Exception.Message)" -ForegroundColor Yellow
 }
 
 Write-Host "`n============================================================" -ForegroundColor Cyan
