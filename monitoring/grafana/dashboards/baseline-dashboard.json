@@ -12,13 +12,13 @@
     {
       "collapsed": false,
       "gridPos": {
-        "h": 6,
+        "h": 5,
         "w": 24,
         "x": 0,
         "y": 0
       },
       "id": 1,
-      "title": "Service & Target Availability (Health)",
+      "title": "Operational Services (UP)",
       "type": "stat",
       "datasource": {
         "type": "prometheus",
@@ -31,8 +31,85 @@
             "uid": "Prometheus"
           },
           "editorMode": "code",
-          "expr": "up",
-          "legendFormat": "{{job}} ({{environment}})",
+          "expr": "max by (job) (up == 1)",
+          "legendFormat": "{{job}}",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "1": {
+                  "color": "green",
+                  "index": 0,
+                  "text": "UP"
+                }
+              }
+            }
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "text": {
+          "titleSize": 18,
+          "valueSize": 28
+        },
+        "textMode": "auto"
+      }
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 3,
+        "w": 24,
+        "x": 0,
+        "y": 5
+      },
+      "id": 9,
+      "title": "Offline / Unavailable Targets (DOWN)",
+      "type": "stat",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "Prometheus"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "Prometheus"
+          },
+          "editorMode": "code",
+          "expr": "max by (job) (up == 0)",
+          "legendFormat": "{{job}}",
           "range": true,
           "refId": "A"
         }
@@ -50,11 +127,6 @@
                   "color": "red",
                   "index": 0,
                   "text": "DOWN"
-                },
-                "1": {
-                  "color": "green",
-                  "index": 1,
-                  "text": "UP"
                 }
               }
             }
@@ -65,10 +137,6 @@
               {
                 "color": "red",
                 "value": null
-              },
-              {
-                "color": "green",
-                "value": 1
               }
             ]
           },
@@ -79,14 +147,18 @@
       "options": {
         "colorMode": "background",
         "graphMode": "none",
-        "justifyMode": "auto",
-        "orientation": "horizontal",
+        "justifyMode": "center",
+        "orientation": "auto",
         "reduceOptions": {
           "calcs": [
             "lastNotNull"
           ],
           "fields": "",
           "values": false
+        },
+        "text": {
+          "titleSize": 12,
+          "valueSize": 16
         },
         "textMode": "auto"
       }
@@ -97,7 +169,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 6
+        "y": 8
       },
       "id": 2,
       "title": "Request Rate (RPS by Service)",
@@ -137,7 +209,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 6
+        "y": 8
       },
       "id": 3,
       "title": "HTTP Error Rate (4xx & 5xx Status Codes)",
@@ -177,7 +249,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 14
+        "y": 16
       },
       "id": 4,
       "title": "Response Time Latency (p95 percentile)",
@@ -217,7 +289,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 22
+        "y": 24
       },
       "id": 5,
       "title": "Job Lifecycle Transitions Rate (Sprint 3)",
@@ -257,7 +329,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 22
+        "y": 24
       },
       "id": 6,
       "title": "Kafka JobStatusChanged Events & Consumer Health",
@@ -308,7 +380,7 @@
         "h": 6,
         "w": 12,
         "x": 0,
-        "y": 30
+        "y": 32
       },
       "id": 7,
       "title": "Total Completed Jobs (By Category)",
@@ -360,7 +432,7 @@
         "h": 6,
         "w": 12,
         "x": 12,
-        "y": 30
+        "y": 32
       },
       "id": 8,
       "title": "Reporting Consumer Group Lag (job-status-changed)",
