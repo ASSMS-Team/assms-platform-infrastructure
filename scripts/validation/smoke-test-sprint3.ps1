@@ -70,7 +70,9 @@ if (-not $JobId) {
             $candidate = $jobsResponse | Where-Object { $_.status -eq "ASSIGNED" } | Select-Object -First 1
             if (-not $candidate) { $candidate = $jobsResponse[0] }
             $JobId = $candidate.id
-            if ($candidate.assignedTechnicianId) {
+            if ($candidate.assignment -and $candidate.assignment.technicianId) {
+                $TechnicianId = $candidate.assignment.technicianId
+            } elseif ($candidate.assignedTechnicianId) {
                 $TechnicianId = $candidate.assignedTechnicianId
             }
             Write-Host "Selected Job ID: $JobId (Ref: $($candidate.jobReference), Status: $($candidate.status), Tech: $TechnicianId)" -ForegroundColor Green
