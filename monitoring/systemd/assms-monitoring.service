@@ -1,0 +1,18 @@
+[Unit]
+Description=ASSMS Staging Prometheus and Grafana Monitoring Stack
+Requires=docker.service
+After=docker.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+WorkingDirectory=/opt/assms/monitoring
+ExecStart=/usr/bin/docker compose --env-file /opt/assms/monitoring/.env.monitoring.staging -f /opt/assms/monitoring/docker-compose.monitoring.staging.yml up -d
+ExecStop=/usr/bin/docker compose --env-file /opt/assms/monitoring/.env.monitoring.staging -f /opt/assms/monitoring/docker-compose.monitoring.staging.yml down
+ExecReload=/usr/bin/docker compose --env-file /opt/assms/monitoring/.env.monitoring.staging -f /opt/assms/monitoring/docker-compose.monitoring.staging.yml restart
+TimeoutStartSec=120
+Restart=no
+
+[Install]
+WantedBy=multi-user.target

@@ -84,7 +84,22 @@ monitoring/
 │   └── provisioning/
 │       ├── dashboards/dashboards.yml   <-- Automatic dashboard provider config
 │       └── datasources/prometheus.yml  <-- Automatic Prometheus datasource config
-└── prometheus/
-    └── config/
-        └── prometheus.yml              <-- Scrape targets configuration
+├── prometheus/
+│   └── config/
+│       ├── prometheus.yml              <-- Scrape targets configuration (local)
+│       └── prometheus.staging.yml      <-- Scrape targets configuration (staging)
+└── systemd/
+    └── assms-monitoring.service        <-- Systemd unit for host auto-restart
 ```
+
+---
+
+## ☁️ 5. Azure Staging Deployment & Runbook (ASSMS-229)
+
+For complete staging deployment procedures, cost analysis, persistent storage configuration, systemd restart setup, and operational runbooks, see:
+* **[Staging Monitoring Deployment & Operations Guide](../docs/deployment/monitoring-staging.md)**
+* Staging Compose: `docker/docker-compose.monitoring.staging.yml`
+* Staging Scrape Targets: `monitoring/prometheus/config/prometheus.staging.yml`
+* Automated Deploy Script: `scripts/deployment/deploy-monitoring-staging.sh`
+* Systemd Service Unit: `monitoring/systemd/assms-monitoring.service`
+
