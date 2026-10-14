@@ -31,6 +31,8 @@ mysql_storage_auto_grow_enabled = false
 
 kafka_vm_name          = "vm-assms-kafka-staging"
 kafka_vm_size          = "Standard_B2pls_v2"
+# Set to "eastasia" for a fresh three-region deployment; null retains the primary region.
+kafka_location         = null
 kafka_source_image_sku = "22_04-lts-arm64"
 kafka_admin_username   = "assmsadmin"
 kafka_ssh_public_key   = "ssh-ed25519 REPLACE_WITH_YOUR_PUBLIC_KEY"
@@ -72,3 +74,8 @@ api_management_backend_apis = {
     url          = "https://reporting-assms-staging.example.com"
   }
 }
+
+# Optional GitHub Actions deployment identity. Match the exact OIDC subject from
+# GitHub's repository OIDC settings, including immutable IDs where enabled.
+github_oidc_enabled = false
+github_oidc_subjects = {}

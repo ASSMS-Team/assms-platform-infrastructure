@@ -170,6 +170,60 @@ module "secondary_services_subnet" {
   address_prefixes     = var.secondary_services_subnet_address_prefixes
 }
 
+locals {
+  kafka_separate_region = var.kafka_location != null && var.kafka_location != var.location
+  kafka_region          = coalesce(var.kafka_location, var.location)
+  kafka_subnet_id       = local.kafka_separate_region ? module.kafka_subnet[0].id : module.platform_subnet.id
+}
+
+module "kafka_vnet" {
+  count  = local.kafka_separate_region ? 1 : 0
+  source = "../../modules/vnet"
+
+  name                = var.kafka_vnet_name
+  resource_group_name = module.resource_group.name
+  location            = local.kafka_region
+  address_space       = var.kafka_vnet_address_space
+  tags                = var.tags
+}
+
+module "kafka_subnet" {
+  count  = local.kafka_separate_region ? 1 : 0
+  source = "../../modules/subnet"
+
+  name                 = var.kafka_subnet_name
+  resource_group_name  = module.resource_group.name
+  virtual_network_name = module.kafka_vnet[0].name
+  address_prefixes     = var.kafka_subnet_address_prefixes
+}
+
+# Peering is not transitive: Kafka needs a direct connection to both service VNets.
+resource "azurerm_virtual_network_peering" "services_to_kafka" {
+  for_each = local.kafka_separate_region ? {
+    primary   = module.vnet.name
+    secondary = module.secondary_vnet.name
+  } : {}
+
+  name                         = "peer-assms-${var.environment}-${each.key}-to-kafka"
+  resource_group_name          = module.resource_group.name
+  virtual_network_name         = each.value
+  remote_virtual_network_id    = module.kafka_vnet[0].id
+  allow_virtual_network_access = true
+}
+
+resource "azurerm_virtual_network_peering" "kafka_to_services" {
+  for_each = local.kafka_separate_region ? {
+    primary   = module.vnet.id
+    secondary = module.secondary_vnet.id
+  } : {}
+
+  name                         = "peer-assms-${var.environment}-kafka-to-${each.key}"
+  resource_group_name          = module.resource_group.name
+  virtual_network_name         = module.kafka_vnet[0].name
+  remote_virtual_network_id    = each.value
+  allow_virtual_network_access = true
+}
+
 resource "azurerm_virtual_network_peering" "primary_to_secondary" {
   name                         = var.primary_to_secondary_peering_name
   resource_group_name          = module.resource_group.name
@@ -250,7 +304,7 @@ module "kafka_nsg" {
 
   name                = var.kafka_nsg_name
   resource_group_name = module.resource_group.name
-  location            = module.resource_group.location
+  location            = local.kafka_region
   security_rules      = local.kafka_security_rules
   tags                = var.tags
 }
@@ -261,7 +315,7 @@ module "kafka_public_ip" {
 
   name                = var.kafka_public_ip_name
   resource_group_name = module.resource_group.name
-  location            = module.resource_group.location
+  location            = local.kafka_region
   tags                = var.tags
 }
 
@@ -270,8 +324,8 @@ module "kafka_nic" {
 
   name                      = var.kafka_nic_name
   resource_group_name       = module.resource_group.name
-  location                  = module.resource_group.location
-  subnet_id                 = module.platform_subnet.id
+  location                  = local.kafka_region
+  subnet_id                 = local.kafka_subnet_id
   network_security_group_id = module.kafka_nsg.id
   public_ip_id              = try(module.kafka_public_ip[0].id, null)
   tags                      = var.tags
@@ -282,7 +336,7 @@ module "kafka_vm" {
 
   name                 = var.kafka_vm_name
   resource_group_name  = module.resource_group.name
-  location             = module.resource_group.location
+  location             = local.kafka_region
   size                 = var.kafka_vm_size
   admin_username       = var.kafka_admin_username
   ssh_public_key       = var.kafka_ssh_public_key
