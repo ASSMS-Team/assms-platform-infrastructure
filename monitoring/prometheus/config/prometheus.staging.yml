@@ -1,0 +1,68 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  - job_name: 'customer-asset-service'
+    scheme: https
+    metrics_path: '/metrics'
+    tls_config:
+      insecure_skip_verify: true
+    static_configs:
+      - targets: ['20.89.44.94:443']
+        labels:
+          environment: 'staging'
+          region: 'southeast-asia'
+
+  - job_name: 'job-service'
+    scheme: https
+    metrics_path: '/metrics'
+    tls_config:
+      insecure_skip_verify: true
+    static_configs:
+      - targets: ['20.43.84.128:443']
+        labels:
+          environment: 'staging'
+          region: 'southeast-asia'
+
+  - job_name: 'dispatch-service'
+    scheme: https
+    metrics_path: '/metrics'
+    tls_config:
+      insecure_skip_verify: true
+    static_configs:
+      - targets: ['20.219.52.30:443']
+        labels:
+          environment: 'staging'
+          region: 'central-india'
+
+  - job_name: 'reporting-service'
+    scheme: https
+    metrics_path: '/metrics'
+    tls_config:
+      insecure_skip_verify: true
+    static_configs:
+      - targets: ['20.198.82.112:443']
+        labels:
+          environment: 'staging'
+          region: 'central-india'
+
+  - job_name: 'apim-gateway'
+    scheme: https
+    metrics_path: '/customer/metrics'
+    static_configs:
+      - targets: ['apim-assms-staging-45ff260826.azure-api.net:443']
+        labels:
+          environment: 'staging'
+          component: 'gateway'
+
+  - job_name: 'kafka-broker'
+    static_configs:
+      - targets: ['10.40.2.4:9308']
+        labels:
+          environment: 'staging'
+          component: 'messaging'

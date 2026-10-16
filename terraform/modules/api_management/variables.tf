@@ -59,8 +59,8 @@ variable "backend_apis" {
   }))
 
   validation {
-    condition     = alltrue([for api in values(var.backend_apis) : startswith(api.url, "https://") && !endswith(api.url, "/")])
-    error_message = "Every backend URL must be HTTPS and must not end in a slash."
+    condition     = alltrue([for api in values(var.backend_apis) : (startswith(api.url, "https://") || startswith(api.url, "http://")) && !endswith(api.url, "/")])
+    error_message = "Every backend URL must start with http:// or https:// and must not end in a slash."
   }
 }
 

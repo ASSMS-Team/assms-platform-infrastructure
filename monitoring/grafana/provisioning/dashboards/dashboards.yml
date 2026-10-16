@@ -1,0 +1,12 @@
+apiVersion: 1
+
+providers:
+  - name: 'ASSMS Baseline Monitoring'
+    orgId: 1
+    folder: 'ASSMS Monitoring'
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 10
+    allowUiUpdates: true
+    options:
+      path: /var/lib/grafana/dashboards

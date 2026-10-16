@@ -10,5 +10,9 @@ terraform {
 }
 
 provider "azurerm" {
-  features {}
+  features {
+    api_management {
+      purge_soft_delete_on_destroy = false
+    }
+  }
 }

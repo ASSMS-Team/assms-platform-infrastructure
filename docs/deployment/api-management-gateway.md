@@ -56,14 +56,18 @@ frontend commits retain their independent ownership.
 ## Deployment and verification
 
 1. Copy the APIM values from `terraform.tfvars.example` into a secure local
-   `terraform.tfvars`; use actual staging service HTTPS origins.
-2. Run `terraform fmt -check`, `terraform init -backend=false`, `terraform
-   validate`, then review `terraform plan`. Do not apply until the team reviews
-   cost, the chosen SKU and the backend origins.
+   `terraform.tfvars`; use actual staging service HTTPS origins and set `api_management_enabled = true`.
+2. Run `terraform fmt -check`, `terraform init -backend=false`, `terraform validate`, then review `terraform plan`. Do not apply until the team reviews cost, the chosen SKU and the backend origins.
 3. Deploy APIM and record its `api_management_gateway_url` output.
-4. Deploy the frontend with its APIM base URL.
-5. Sign in, call one protected Dispatch endpoint through APIM, and verify that
-   the backend still rejects a missing or insufficient JWT.
+4. Deploy the frontend with its APIM base URL (`VITE_API_BASE_URL`).
+5. Sign in, call one protected Dispatch endpoint through APIM, and verify that the backend still rejects a missing or insufficient JWT.
 
-This document records Terraform configuration only. It does not claim that APIM
-or any gateway route is deployed until that final staging request succeeds.
+## Cost Control & Teardown After Evaluation
+
+To control Azure subscription costs, Developer-tier APIM should be disabled after evaluation:
+1. In `terraform.tfvars`, set `api_management_enabled = false`.
+2. Run `terraform apply` to safely remove the APIM instance while keeping all subnets and other platform resources intact.
+3. See [Azure Staging Cost Control](azure-cost-control.md) for full details.
+
+This document records Terraform configuration only. It does not claim that APIM or any gateway route is deployed until that final staging request succeeds.
+

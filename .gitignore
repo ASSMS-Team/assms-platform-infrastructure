@@ -2,10 +2,12 @@
 *.tfstate
 *.tfstate.*
 *.tfplan
+tfplan
 terraform.tfvars
 backend.hcl
 .env
 .env.*
 !.env.example
+!.env.*.example
 *.pem
 *.key

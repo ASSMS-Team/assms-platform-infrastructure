@@ -216,10 +216,53 @@ A null key would round-robin the events of a job across partitions and lose that
 
 Event names are past tense because an event records something that has already happened. A topic and its `eventType` always describe the same fact in the two casings above, so `job-status-changed` carries `JobStatusChanged` and nothing else.
 
-## Sprint 2 Scope
+## `JobStatusChanged`
 
-**`JobStatusChanged` is still not defined.** `JobAssigned` was defined above in Sprint 2 under ASSMS-27 and is now implemented; `JobStatusChanged` remains open.
+Published by Job Service to `job-status-changed` when a job's lifecycle status transitions (e.g. `ASSIGNED` -> `IN_PROGRESS` or `IN_PROGRESS` -> `COMPLETED`). Envelope values are `eventType` `JobStatusChanged`, `eventVersion` `1`, and `producer` `job-service`.
 
-What is already fixed for `JobStatusChanged` is everything outside the payload: its topic exists, its producer and consumer-group mapping is in the table above, it will carry the same six-field envelope, it will be keyed by `jobId`, and it will use the same JSON serialization and naming rules. Only the contents of its `payload` object remain open.
+### Payload Fields
 
-Nothing may be implemented against a guessed `JobStatusChanged` payload. This document must be extended with its field list and example message before Job Service produces `job-status-changed`.
+These are the fields as Job Service publishes them and Reporting Service projects them into `job_projection` and `job_completion_projection`.
+
+| Field | Type | Nullable | Description |
+| --- | --- | --- | --- |
+| `jobId` | string (UUID) | no | Server-generated id of the job. Also the message key. |
+| `jobReference` | string | no | Human-readable handle (`JOB-XXXXXX`). |
+| `assignmentId` | string (UUID) | yes | Id of the active assignment associated with this status transition, if applicable. |
+| `technicianId` | string (UUID) | yes | Id of the technician working on the job, if assigned. |
+| `technicianReference` | string | yes | Human-readable technician handle (e.g. `TECH-0001`). |
+| `oldStatus` | string | no | Previous lifecycle status (`ASSIGNED`, `IN_PROGRESS`, etc.). |
+| `newStatus` | string | no | New lifecycle status (`IN_PROGRESS`, `COMPLETED`, etc.). |
+| `occurredAt` | string (ISO 8601, UTC) | no | Timestamp of when the status transition took place in Job Service. |
+
+### Example Message
+
+Key: `9f1c7a24-8f4e-4c3a-9a52-2b6d0f5e1a77`
+
+```json
+{
+  "eventId": "e5c2b189-2f47-49d8-912c-47a810f63b21",
+  "eventType": "JobStatusChanged",
+  "eventVersion": 1,
+  "occurredAt": "2026-09-28T10:30:00.000Z",
+  "producer": "job-service",
+  "payload": {
+    "jobId": "9f1c7a24-8f4e-4c3a-9a52-2b6d0f5e1a77",
+    "jobReference": "JOB-7K2M9X",
+    "assignmentId": "e2d7b415-9a63-4c08-b1f5-7d4e2a9c6301",
+    "technicianId": "5c8a3f71-4b29-4e6d-8a03-9f1b7c2e4d58",
+    "technicianReference": "TECH-0001",
+    "oldStatus": "IN_PROGRESS",
+    "newStatus": "COMPLETED",
+    "occurredAt": "2026-09-28T10:30:00.000Z"
+  }
+}
+```
+
+### Idempotency and Completion Projection
+
+Reporting Service consumes `job-status-changed` using the consumer group `assms-reporting-job-status-changed`:
+- It updates the current status in `job_projection`.
+- When `newStatus` is `COMPLETED`, it performs an idempotent `INSERT ... ON DUPLICATE KEY UPDATE` into `job_completion_projection`.
+- Duplicate deliveries of the same status transition do not create duplicate completion rows.
+
