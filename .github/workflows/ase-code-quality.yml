@@ -2,7 +2,7 @@ name: ASE code quality
 
 on:
   push:
-    branches: [ASE_Code_Quality_Metrics]
+    branches: [dev]
     paths:
       - .github/workflows/ase-code-quality.yml
       - quality/sonarqube/**
@@ -11,9 +11,9 @@ on:
       source_ref:
         description: Branch checked out from each application repository
         required: true
-        default: ASE_Code_Quality_Metrics
+        default: dev
         type: choice
-        options: [ASE_Code_Quality_Metrics, dev]
+        options: [dev, ASE_Code_Quality_Metrics]
       project:
         description: Analysis scope
         required: true
@@ -31,7 +31,7 @@ concurrency:
 jobs:
   analyze:
     name: Build, test, analyze and check gate
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 90
     env:
       SONAR_HOST_URL: http://127.0.0.1:9000
@@ -45,35 +45,35 @@ jobs:
         uses: actions/checkout@v7
         with:
           repository: ASSMS-Team/assms-job-service
-          ref: ${{ inputs.source_ref || 'ASE_Code_Quality_Metrics' }}
+          ref: ${{ inputs.source_ref || 'dev' }}
           path: assms-job-service
           persist-credentials: false
       - name: Check out Customer and Asset Service
         uses: actions/checkout@v7
         with:
           repository: ASSMS-Team/assms-customer-asset-service
-          ref: ${{ inputs.source_ref || 'ASE_Code_Quality_Metrics' }}
+          ref: ${{ inputs.source_ref || 'dev' }}
           path: assms-customer-asset-service
           persist-credentials: false
       - name: Check out Dispatch Service
         uses: actions/checkout@v7
         with:
           repository: ASSMS-Team/assms-dispatch-service
-          ref: ${{ inputs.source_ref || 'ASE_Code_Quality_Metrics' }}
+          ref: ${{ inputs.source_ref || 'dev' }}
           path: assms-dispatch-service
           persist-credentials: false
       - name: Check out Reporting Service
         uses: actions/checkout@v7
         with:
           repository: ASSMS-Team/assms-reporting-service
-          ref: ${{ inputs.source_ref || 'ASE_Code_Quality_Metrics' }}
+          ref: ${{ inputs.source_ref || 'dev' }}
           path: assms-reporting-service
           persist-credentials: false
       - name: Check out frontend
         uses: actions/checkout@v7
         with:
           repository: ASSMS-Team/assms-frontend
-          ref: ${{ inputs.source_ref || 'ASE_Code_Quality_Metrics' }}
+          ref: ${{ inputs.source_ref || 'dev' }}
           path: assms-frontend
           persist-credentials: false
       - name: Set up .NET 8
