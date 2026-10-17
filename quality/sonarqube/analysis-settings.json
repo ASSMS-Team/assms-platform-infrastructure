@@ -1,0 +1,12 @@
+{
+  "dotnetScannerVersion": "12.0.0",
+  "cliScannerVersion": "8.1.0.6389",
+  "cliScannerSha256": "ab76ab3c360025e9108be5b55be066f304a164f8b2850d2f2f333915db51bc1b",
+  "projects": [
+    {"id": "job", "repository": "assms-job-service", "solution": "JobService.sln", "projectKey": "ase-assms-job-service"},
+    {"id": "customer", "repository": "assms-customer-asset-service", "solution": "CustomerAssetService.sln", "projectKey": "ase-assms-customer-asset-service"},
+    {"id": "dispatch", "repository": "assms-dispatch-service", "solution": "DispatchService.sln", "projectKey": "ase-assms-dispatch-service"},
+    {"id": "reporting", "repository": "assms-reporting-service", "solution": "ReportingService.sln", "projectKey": "ase-assms-reporting-service"},
+    {"id": "frontend", "repository": "assms-frontend", "projectKey": "ase-assms-frontend"}
+  ]
+}
