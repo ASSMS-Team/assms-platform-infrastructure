@@ -10,6 +10,8 @@
 
 ## Local Development
 
+- [Local SonarQube setup for ASE code quality and metrics](quality/sonarqube/README.md)
+
 ## Environment Variables
 
 ## Testing
