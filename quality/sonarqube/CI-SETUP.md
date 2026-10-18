@@ -4,7 +4,7 @@ The [ASE code-quality workflow](../../.github/workflows/ase-code-quality.yml) bu
 
 ## Run against dev
 
-The workflow runs automatically when its own workflow file or `quality/sonarqube` configuration changes on the platform repository's `dev` branch. On those pushes it checks out `dev` from all five application repositories. Changes pushed only to an application repository do **not** trigger this platform workflow; launch it manually after those merges.
+The workflow runs automatically when its own workflow file or `quality/sonarqube` configuration changes on the platform repository's `dev` branch. On those pushes it checks out `dev` from all five application repositories. Each application repository also calls this workflow after a push to its `dev` branch. The called workflow verifies and analyzes that application's exact triggering commit; it checks out `dev` from the other applications. These called runs appear in the triggering application's Actions page.
 
 With GitHub CLI available as `gh` and signed in:
 
