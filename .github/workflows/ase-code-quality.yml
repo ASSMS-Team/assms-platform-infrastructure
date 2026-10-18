@@ -6,6 +6,16 @@ on:
     paths:
       - .github/workflows/ase-code-quality.yml
       - quality/sonarqube/**
+  workflow_call:
+    inputs:
+      source_repository:
+        description: Application repository that triggered this run
+        required: true
+        type: string
+      source_sha:
+        description: Exact commit that triggered this run
+        required: true
+        type: string
   workflow_dispatch:
     inputs:
       source_ref:
@@ -55,43 +65,61 @@ jobs:
       - name: Check out platform workflow
         uses: actions/checkout@v7
         with:
+          repository: ASSMS-Team/assms-platform-infrastructure
+          ref: ${{ github.repository == 'ASSMS-Team/assms-platform-infrastructure' && github.sha || 'dev' }}
           path: assms-platform-infrastructure
           persist-credentials: false
       - name: Check out Job Service
         uses: actions/checkout@v7
         with:
           repository: ASSMS-Team/assms-job-service
-          ref: ${{ inputs.source_ref || 'dev' }}
+          ref: ${{ inputs.source_repository == 'assms-job-service' && inputs.source_sha || inputs.source_ref || 'dev' }}
           path: assms-job-service
           persist-credentials: false
       - name: Check out Customer and Asset Service
         uses: actions/checkout@v7
         with:
           repository: ASSMS-Team/assms-customer-asset-service
-          ref: ${{ inputs.source_ref || 'dev' }}
+          ref: ${{ inputs.source_repository == 'assms-customer-asset-service' && inputs.source_sha || inputs.source_ref || 'dev' }}
           path: assms-customer-asset-service
           persist-credentials: false
       - name: Check out Dispatch Service
         uses: actions/checkout@v7
         with:
           repository: ASSMS-Team/assms-dispatch-service
-          ref: ${{ inputs.source_ref || 'dev' }}
+          ref: ${{ inputs.source_repository == 'assms-dispatch-service' && inputs.source_sha || inputs.source_ref || 'dev' }}
           path: assms-dispatch-service
           persist-credentials: false
       - name: Check out Reporting Service
         uses: actions/checkout@v7
         with:
           repository: ASSMS-Team/assms-reporting-service
-          ref: ${{ inputs.source_ref || 'dev' }}
+          ref: ${{ inputs.source_repository == 'assms-reporting-service' && inputs.source_sha || inputs.source_ref || 'dev' }}
           path: assms-reporting-service
           persist-credentials: false
       - name: Check out frontend
         uses: actions/checkout@v7
         with:
           repository: ASSMS-Team/assms-frontend
-          ref: ${{ inputs.source_ref || 'dev' }}
+          ref: ${{ inputs.source_repository == 'assms-frontend' && inputs.source_sha || inputs.source_ref || 'dev' }}
           path: assms-frontend
           persist-credentials: false
+      - name: Verify triggering source revision
+        if: ${{ inputs.source_repository != '' }}
+        shell: pwsh
+        env:
+          ASE_SOURCE_REPOSITORY: ${{ inputs.source_repository }}
+          ASE_SOURCE_SHA: ${{ inputs.source_sha }}
+        run: |
+          $allowed = @('assms-job-service', 'assms-customer-asset-service', 'assms-dispatch-service', 'assms-reporting-service', 'assms-frontend')
+          if ($env:ASE_SOURCE_REPOSITORY -notin $allowed -or $env:ASE_SOURCE_SHA -notmatch '^[0-9a-f]{40}$') {
+            throw 'Invalid reusable-workflow source repository or commit SHA.'
+          }
+          $actual = git -C $env:ASE_SOURCE_REPOSITORY rev-parse HEAD
+          if ($actual -ne $env:ASE_SOURCE_SHA) {
+            throw "Source checkout mismatch for $env:ASE_SOURCE_REPOSITORY."
+          }
+          Write-Output "Verified $env:ASE_SOURCE_REPOSITORY at $actual"
       - name: Set up .NET 8
         uses: actions/setup-dotnet@v4
         with:
