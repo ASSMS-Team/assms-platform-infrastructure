@@ -4,7 +4,8 @@ param(
     [string]$Project = 'all',
     [string]$DotnetPath,
     [switch]$UseEnvironmentToken,
-    [switch]$FailOnQualityGate
+    [switch]$FailOnQualityGate,
+    [switch]$DispatchIntegrationDatabase
 )
 
 $ErrorActionPreference = 'Stop'
@@ -13,5 +14,6 @@ $aseArguments = @((Join-Path $PSScriptRoot 'analyze.py'), '--project', $Project)
 if ($DotnetPath) { $aseArguments += @('--dotnet', $DotnetPath) }
 if ($UseEnvironmentToken) { $aseArguments += '--use-environment-token' }
 if ($FailOnQualityGate) { $aseArguments += '--fail-on-quality-gate' }
+if ($DispatchIntegrationDatabase) { $aseArguments += '--dispatch-integration-database' }
 & $asePython @aseArguments
 exit $LASTEXITCODE
