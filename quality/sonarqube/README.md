@@ -75,7 +75,7 @@ The .NET scanner version is pinned in `analysis-settings.json`. Coverlet measure
 
 The frontend sequence is `npm ci`, lint, production build, Vitest with V8 coverage, then standalone SonarScanner CLI. Its version and archive checksum are pinned in `analysis-settings.json`. The runner downloads it from SonarSource and checks the checksum before use. The CLI uses the installed Java 21 runtime; automatic JRE provisioning is disabled to avoid long Windows cache paths. `vitest.config.ts` includes untested production TypeScript and TSX files in coverage. Test files, test setup and declaration files are excluded from that denominator. `sonar-project.properties` identifies production and test sources; the scanner imports LCOV coverage.
 
-The runner clears `ASSMS_DISPATCH_TEST_CONNECTION` in its child processes. Dispatch database integration tests therefore remain skipped in this coverage run. They require a separately configured disposable database and are not counted as passed.
+The runner clears `ASSMS_DISPATCH_TEST_CONNECTION` by default, so local analysis skips Dispatch database integration tests. The CI workflow provides a disposable MySQL `dispatchdb_test` schema and runs with `-DispatchIntegrationDatabase`; a skipped Dispatch test then fails the analysis.
 
 ## Read the results
 
@@ -97,7 +97,7 @@ Scanner upload success and SonarQube background-task success are separate checks
 
 SonarQube's `coverage` metric combines line and condition coverage. The saved metrics also include `line_coverage` and `branch_coverage`. Test pass counts describe assertions; they do not indicate how much production code was exercised. Estimated technical debt (`sqale_index`) is expressed in minutes of remediation effort, not measured developer time.
 
-The assigned gate is Sonar way. A first baseline can return `OK` with no evaluated new-code conditions. Review overall findings and coverage before drawing conclusions about code quality. Treat security findings as items for code review, not confirmed exploitable vulnerabilities.
+Initialization assigns the **ASSMS ASE baseline** gate to the five projects. It evaluates overall coverage (minimum 35%) and duplicated lines (maximum 10%). These provisional assignment thresholds are deliberately modest; review findings and coverage before drawing conclusions about code quality. Treat security findings as items for code review, not confirmed exploitable vulnerabilities.
 
 For automation that must fail when SonarQube returns a failed gate:
 
@@ -105,7 +105,7 @@ For automation that must fail when SonarQube returns a failed gate:
 powershell -NoProfile -ExecutionPolicy Bypass -File .\Run-Analysis.ps1 -FailOnQualityGate
 ```
 
-The default run reports gate results without using them as its exit status. Build, test, coverage, scanner or background-task failures always return a nonzero exit status. The local command does not deploy to Azure. A separate GitHub Actions workflow is prepared but has not yet run remotely.
+The default run reports gate results without using them as its exit status. Build, test, coverage, scanner or background-task failures always return a nonzero exit status. The local command does not deploy to Azure. The GitHub Actions workflow runs on platform configuration changes to `dev` and can also be started manually; see [CI setup](CI-SETUP.md).
 
 The coverage import configuration follows SonarSource's [.NET coverage](https://docs.sonarsource.com/sonarqube-community-build/analyzing-source-code/test-coverage/dotnet-test-coverage) and [JavaScript/TypeScript coverage](https://docs.sonarsource.com/sonarqube-community-build/analyzing-source-code/test-coverage/javascript-typescript-test-coverage) documentation.
 

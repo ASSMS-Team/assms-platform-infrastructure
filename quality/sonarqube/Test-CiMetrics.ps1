@@ -15,6 +15,9 @@ if (-not $report.allQualityGatesPassed) { throw 'One or more SonarQube quality g
 
 $failures = @()
 foreach ($entry in $report.projects.PSObject.Properties) {
+    if ([int]$entry.Value.evaluatedQualityGateConditions -lt 2) {
+        $failures += "$($entry.Name): fewer than two quality-gate conditions were evaluated"
+    }
     $coverage = 0.0
     $duplication = 0.0
     if (-not [double]::TryParse([string]$entry.Value.metrics.coverage, [ref]$coverage)) {

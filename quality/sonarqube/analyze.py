@@ -158,6 +158,15 @@ class Analysis:
         counts['skipped'] = counts['total'] - counts['executed']
         return counts
 
+    def dotnet_test_environment(self, project):
+        environment = dict(self.env)
+        if project['id'] == 'dispatch' and getattr(self.args, 'dispatch_integration_database', False):
+            connection = os.environ.get('ASSMS_DISPATCH_TEST_CONNECTION', '')
+            if not connection:
+                raise RuntimeError('The Dispatch integration database was requested but ASSMS_DISPATCH_TEST_CONNECTION is missing.')
+            environment['ASSMS_DISPATCH_TEST_CONNECTION'] = connection
+        return environment
+
     def cli_scanner(self, repo):
         version = SETTINGS['cliScannerVersion']
         tools = LOCAL / 'tools'
@@ -194,12 +203,14 @@ class Analysis:
         self.command(repo, 'scanner-begin', scanner + ['begin', f"/k:{project['projectKey']}", f'/v:{revision[:12]}', f'/d:sonar.host.url={self.url}', f'/d:sonar.token={token}', '/d:sonar.scanner.scanAll=false', f'/d:sonar.cs.opencover.reportsPaths={normalized}/TestResults/**/coverage.opencover.xml', f'/d:sonar.cs.vstest.reportsPaths={normalized}/TestResults/*.trx', '/d:sonar.exclusions=**/bin/**,**/obj/**,.sonarqube/**,quality/artifacts/**'])
         try:
             self.command(repo, 'build', [self.dotnet(), 'build', project['solution'], '--configuration', 'Release', '--no-incremental', '--disable-build-servers', '--verbosity', 'minimal'])
-            self.command(repo, 'tests-and-coverage', [self.dotnet(), 'test', project['solution'], '--configuration', 'Release', '--no-build', '--no-restore', '--settings', str(repo / 'quality/coverage.runsettings'), '--collect:XPlat Code Coverage', '--results-directory', str(artifacts / 'TestResults'), '--logger', 'trx;LogFileName=tests.trx', '--verbosity', 'minimal'])
+            self.command(repo, 'tests-and-coverage', [self.dotnet(), 'test', project['solution'], '--configuration', 'Release', '--no-build', '--no-restore', '--settings', str(repo / 'quality/coverage.runsettings'), '--collect:XPlat Code Coverage', '--results-directory', str(artifacts / 'TestResults'), '--logger', 'trx;LogFileName=tests.trx', '--verbosity', 'minimal'], env=self.dotnet_test_environment(project))
             reports = list((artifacts / 'TestResults').rglob('coverage.opencover.xml'))
             if not reports:
                 raise RuntimeError('Coverlet did not produce an OpenCover report; refusing an analysis without coverage.')
             item = self.report['projects'][repo.name]
             item['tests'] = self.test_counts(artifacts / 'TestResults/tests.trx')
+            if project['id'] == 'dispatch' and getattr(self.args, 'dispatch_integration_database', False) and item['tests']['skipped']:
+                raise RuntimeError('Dispatch integration database is enabled, but one or more Dispatch tests were skipped.')
             item['coverageReports'] = [str(p) for p in reports]
         except Exception:
             # Do not publish a partial result as a successful analysis.
@@ -310,6 +321,7 @@ if __name__ == '__main__':
     parser.add_argument('--dotnet')
     parser.add_argument('--use-environment-token', action='store_true')
     parser.add_argument('--fail-on-quality-gate', action='store_true')
+    parser.add_argument('--dispatch-integration-database', action='store_true', help='Run Dispatch database tests against the configured disposable MySQL database.')
     arguments = parser.parse_args()
     try:
         sys.exit(Analysis(arguments).run())
